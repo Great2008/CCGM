@@ -1,0 +1,5 @@
+# No external dependencies needed for the base API.
+# Add packages here as you extend the backend:
+# sendgrid==6.11.0      # For email
+# supabase==2.0.0       # For database
+# python-dotenv==1.0.0  # For env vars
