@@ -1,0 +1,18 @@
+{
+  "name": "Christian Church Of God Mission",
+  "short_name": "CCOGM",
+  "description": "God First — Bible, Hymnal, Devotionals & Church Resources",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a5c2a",
+  "theme_color": "#2d8a48",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/cross.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Bible", "url": "/bible", "description": "Read the KJV Bible" },
+    { "name": "Devotional", "url": "/devotional", "description": "Daily Devotional" },
+    { "name": "Hymnal", "url": "/hymnal", "description": "Hymns & Worship" }
+  ]
+}
