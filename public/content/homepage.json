@@ -1,0 +1,25 @@
+{
+  "hero": {
+    "title": "Welcome to Christian Church Of God Mission",
+    "subtitle": "A community rooted in faith, love, and the Word of God. Join us as we worship, grow, and serve together.",
+    "ctaText": "Join Us This Saturday",
+    "ctaLink": "/events"
+  },
+  "announcement": { "show": false, "text": "" },
+  "serviceTimes": [
+    { "day": "Sunday",    "name": "Meetings of Different Bodies", "time": "", "icon": "🤝" },
+    { "day": "Monday",    "name": "Children's Prayer",            "time": "", "icon": "🙏" },
+    { "day": "Tuesday",   "name": "Bible Study",                  "time": "", "icon": "📖" },
+    { "day": "Wednesday", "name": "Midweek Service",              "time": "", "icon": "⛪" },
+    { "day": "Thursday",  "name": "Deliverance Service",          "time": "", "icon": "🔥" },
+    { "day": "Friday",    "name": "Sabbath Preparation",          "time": "", "icon": "✨" },
+    { "day": "Saturday",  "name": "Divine Service",               "time": "", "icon": "🌟" }
+  ],
+  "stats": [
+    { "label": "Years of Ministry", "value": "25+" },
+    { "label": "Active Members",    "value": "500+" },
+    { "label": "Weekly Services",   "value": "7" },
+    { "label": "Countries Reached", "value": "12+" }
+  ],
+  "contact": { "address": "", "phone": "", "email": "info@ccogm.org", "mapUrl": "" }
+}
