@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-              <div style={{ width:42, height:42, borderRadius:10, background:'linear-gradient(135deg,var(--brand-light),var(--gold))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem', flexShrink:0 }}>🌐</div>
+              <img src="/logo.png" alt="CCG World" style={{ width:52, height:52, objectFit:'contain', flexShrink:0, filter:'drop-shadow(0 2px 6px rgba(0,0,0,0.3))' }} />
               <div>
                 <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:'1.05rem' }}>CCG <span style={{ color:'var(--gold)' }}>World</span></div>
                 <div style={{ fontSize:'0.6rem', letterSpacing:'0.18em', color:'rgba(255,255,255,0.4)', textTransform:'uppercase', marginTop:1 }}>God First</div>

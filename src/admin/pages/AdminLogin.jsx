@@ -25,7 +25,7 @@ export default function AdminLogin({ onLogin }) {
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,var(--brand-deep) 0%,var(--brand-mid) 100%)', padding:20 }}>
       <div style={{ background:'white', borderRadius:20, padding:'44px 40px', width:'100%', maxWidth:420, boxShadow:'0 24px 80px rgba(0,0,0,0.25)' }}>
         <div style={{ textAlign:'center', marginBottom:32 }}>
-          <div style={{ width:56, height:56, borderRadius:16, background:'linear-gradient(135deg,var(--brand-light),var(--gold))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.6rem', margin:'0 auto 16px', boxShadow:'0 6px 20px rgba(37,99,235,0.35)' }}>🌐</div>
+          <img src="/logo.png" alt="CCG World" style={{ width:72, height:72, objectFit:'contain', margin:'0 auto 16px', display:'block', filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.15))' }} />
           <h1 style={{ fontFamily:'var(--font-display)', color:'var(--brand-deep)', fontSize:'1.6rem', margin:'0 0 4px' }}>CCG World Admin</h1>
           <p style={{ color:'var(--text-light)', fontSize:'0.85rem', margin:0 }}>Sign in with your admin account</p>
         </div>

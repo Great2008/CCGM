@@ -52,7 +52,7 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none',flexShrink:0}}>
-            <div style={{width:36,height:36,borderRadius:9,background:'linear-gradient(135deg,var(--brand-light),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem'}}>🌐</div>
+            <img src="/logo.png" alt="CCG World" style={{width:46,height:46,objectFit:'contain',flexShrink:0,filter:'drop-shadow(0 2px 6px rgba(0,0,0,0.3))'}} />
             <div>
               <span style={{color:'white',fontFamily:'var(--font-display)',fontWeight:900,fontSize:'clamp(0.82rem,1.6vw,0.98rem)',lineHeight:1.1,display:'block'}}>CCG <span style={{color:'var(--gold)'}}>World</span></span>
               <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.55rem',letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>Christian Church Of God Mission</span>
@@ -136,7 +136,10 @@ export default function Navbar() {
         boxShadow:'-8px 0 40px rgba(0,0,0,0.3)',overflowY:'auto',
       }}>
         <div style={{padding:'22px 20px 18px',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div style={{color:'white',fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1rem'}}>🌐 CCG <span style={{color:'var(--gold)'}}>World</span></div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <img src="/logo.png" alt="CCG World" style={{width:36,height:36,objectFit:'contain',filter:'drop-shadow(0 1px 4px rgba(0,0,0,0.3))'}} />
+            <div style={{color:'white',fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1rem'}}>CCG <span style={{color:'var(--gold)'}}>World</span></div>
+          </div>
           <button onClick={()=>setMenuOpen(false)} style={{color:'rgba(255,255,255,0.6)',background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',lineHeight:1}}>✕</button>
         </div>
         <nav style={{padding:'10px 0',flex:1}}>

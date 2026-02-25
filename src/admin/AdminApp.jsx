@@ -68,7 +68,7 @@ export default function AdminApp() {
           transform: typeof window !== 'undefined' && window.innerWidth < 768 && !sideOpen ? 'translateX(-100%)' : 'none',
         }}>
           <div style={{ padding:'22px 18px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,var(--brand-light),var(--gold))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' }}>🌐</div>
+            <img src="/logo.png" alt="CCG World" style={{ width:36, height:36, objectFit:'contain', flexShrink:0 }} />
             <div>
               <div style={{ color:'white', fontFamily:'var(--font-display)', fontWeight:900, fontSize:'0.95rem' }}>CCG <span style={{ color:'var(--gold)' }}>World</span></div>
               <div style={{ color:'rgba(255,255,255,0.4)', fontSize:'0.6rem', letterSpacing:'0.15em', textTransform:'uppercase' }}>Admin Panel</div>
