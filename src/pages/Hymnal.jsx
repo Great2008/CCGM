@@ -11,12 +11,12 @@ async function loadHymns() {
       .eq('published', true)
       .order('sort_order', { ascending: true })
     if (error) throw error
-    if (data && data.length > 0) {
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch {}
-      return data
-    }
-    throw new Error('empty')
+    // Always overwrite cache with whatever Supabase returns — including empty arrays.
+    // This ensures deleted hymns are removed from the offline cache.
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data ?? [])) } catch {}
+    return data ?? []
   } catch {
+    // Only fall back to cache if the network/Supabase call itself failed (offline)
     try {
       const cached = localStorage.getItem(CACHE_KEY)
       if (cached) return JSON.parse(cached)
