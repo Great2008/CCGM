@@ -139,11 +139,11 @@ export default function Contact() {
           </div>
         </div>
       </section>
-    </>
       <style>{`
         @media(max-width:768px){
           .contact-grid{grid-template-columns:1fr!important;gap:32px!important;}
         }
       `}</style>
+    </>
   )
 }

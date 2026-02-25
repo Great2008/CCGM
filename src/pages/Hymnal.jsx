@@ -199,11 +199,11 @@ export default function Hymnal() {
           </div>
         </div>
       </div>
-    </>
       <style>{`
         @media(max-width:768px){
           .hymnal-layout{grid-template-columns:1fr!important;}
         }
       `}</style>
+    </>
   )
 }

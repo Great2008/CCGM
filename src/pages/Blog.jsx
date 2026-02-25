@@ -85,11 +85,11 @@ export default function Blog() {
           </div>
         </div>
       </section>
-    </>
       <style>{`
         @media(max-width:768px){
           .blog-featured-card{grid-template-columns:1fr!important;}
         }
       `}</style>
+    </>
   )
 }

@@ -414,13 +414,11 @@ export default function Bible() {
           )}
         </div>
       </div>
-    </>
       <style>{`
         @media(max-width:768px){
           .bible-reader-grid{grid-template-columns:1fr!important;}
-          .bible-sidebar{order:2;}
-          .bible-content{order:1;}
         }
       `}</style>
+    </>
   )
 }

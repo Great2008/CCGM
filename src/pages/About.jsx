@@ -103,12 +103,12 @@ export default function About() {
           </div>
         </div>
       </section>
-    </>
       <style>{`
         @media(max-width:768px){
           .about-mission-grid{grid-template-columns:1fr!important;gap:32px!important;}
           .about-values-grid{grid-template-columns:1fr!important;}
         }
       `}</style>
+    </>
   )
 }

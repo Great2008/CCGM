@@ -195,13 +195,11 @@ export default function Devotional() {
           </div>
         </div>
       </div>
-    </>
       <style>{`
         @media(max-width:768px){
-          .dev-layout{flex-direction:column!important;}
-          .dev-sidebar{max-height:260px;overflow-y:auto;flex-shrink:0;}
-          .dev-content{width:100%!important;}
+          .dev-layout{grid-template-columns:1fr!important;}
         }
       `}</style>
+    </>
   )
 }
