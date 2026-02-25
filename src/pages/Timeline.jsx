@@ -275,7 +275,7 @@ export default function Timeline() {
   return (
     <>
       {/* Page header */}
-      <div style={{background:'linear-gradient(135deg,var(--brand-deep),var(--brand-mid))',padding:'clamp(80px,12vw,110px) 5% 40px',marginBottom:0}}>
+      <div style={{background:'linear-gradient(135deg,var(--brand-deep),var(--brand-mid))',padding:'clamp(90px,14vw,110px) 5% 40px',marginBottom:0}}>
         <div className="container" style={{maxWidth:760}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',flexWrap:'wrap',gap:16}}>
             <div>

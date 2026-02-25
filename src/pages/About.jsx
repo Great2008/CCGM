@@ -10,7 +10,7 @@ export default function About() {
     <>
       <div style={{
         background: `linear-gradient(160deg, rgba(26,92,42,0.88) 0%, rgba(45,138,72,0.75) 100%), url('https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1600&q=80') center/cover`,
-        padding: '130px 5% 80px', textAlign: 'center',
+        padding: 'clamp(90px,14vw,130px) 5% 80px', textAlign: 'center',
       }}>
         <span className="section-label" style={{ color: 'var(--green-light)' }}>Our Story</span>
         <h1 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 'clamp(2rem, 5vw, 3.4rem)', marginBottom: 16 }}>

@@ -24,6 +24,12 @@
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body:    'Lato', system-ui, sans-serif;
   --font-mono:    'Courier New', monospace;
+
+  /* Legacy green aliases — map to brand palette so Bible/Sermons/Events pages render correctly */
+  --green-deep:   #0f1f3d;
+  --green-mid:    #1a3a6b;
+  --green-light:  #3b82f6;
+  --green-pale:   #eff6ff;
 }
 
 html { scroll-behavior: smooth; font-size: 16px; }
@@ -188,3 +194,4 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
   .hero-ctas { flex-direction: column !important; align-items: center !important; }
   .hero-ctas a { width: 100%; max-width: 280px; justify-content: center !important; }
 }
+

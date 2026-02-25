@@ -228,9 +228,9 @@ export default function Bible() {
 
   return (
     <>
-      <div style={{ background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)', padding: '120px 5% 0' }}>
+      <div style={{ background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)', padding: 'clamp(80px,12vw,120px) 5% 0' }}>
         <div className="container">
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, paddingBottom: 24 }}>
+          <div className="bible-header-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, paddingBottom: 24 }}>
             <div>
               <span className="section-label" style={{ color: 'var(--green-light)' }}>King James Version</span>
               <h1 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 'clamp(2rem,5vw,3rem)', margin: '4px 0 10px' }}>📖 Holy Bible</h1>
@@ -252,14 +252,14 @@ export default function Bible() {
               <button onClick={() => setFontSize(f => Math.min(24, f + 1))} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.1rem', cursor: 'pointer' }}>A+</button>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {[['read','📖 Read'],['search','🔍 Search'],['popular','⭐ Popular']].map(([t,l]) => (
+          <div className="bible-tabs" style={{ display: 'flex', gap: 4 }}>
+            {[['read','📖','Read'],['search','🔍','Search'],['popular','⭐','Popular']].map(([t,icon,label]) => (
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: '10px 22px', borderRadius: '10px 10px 0 0', border: 'none', cursor: 'pointer',
                 background: tab === t ? 'var(--cream)' : 'rgba(255,255,255,0.15)',
-                color: tab === t ? 'var(--green-deep)' : 'white',
+                color: tab === t ? 'var(--green-deep)' : 'rgba(255,255,255,0.9)',
                 fontWeight: 700, fontSize: '0.85rem', fontFamily: 'var(--font-body)',
-              }}>{l}</button>
+              }}>{icon} <span className="bible-tab-label">{label}</span></button>
             ))}
           </div>
         </div>
@@ -417,6 +417,8 @@ export default function Bible() {
       <style>{`
         @media(max-width:768px){
           .bible-reader-grid{grid-template-columns:1fr!important;}
+          .bible-header-row{flex-direction:column!important;align-items:flex-start!important;gap:12px!important;}
+          .bible-tabs button{padding:8px 14px!important;font-size:0.8rem!important;}
         }
       `}</style>
     </>

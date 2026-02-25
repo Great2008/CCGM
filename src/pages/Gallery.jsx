@@ -11,7 +11,7 @@ export default function Gallery() {
     <>
       <div style={{
         background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)',
-        padding: '130px 5% 60px', textAlign: 'center',
+        padding: 'clamp(90px,14vw,130px) 5% 60px', textAlign: 'center',
       }}>
         <span className="section-label" style={{ color: 'var(--green-light)' }}>Our Community</span>
         <h1 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 'clamp(2rem, 5vw, 3.2rem)', marginBottom: 16 }}>

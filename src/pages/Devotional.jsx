@@ -58,7 +58,7 @@ export default function Devotional() {
   return (
     <>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)', padding: '120px 5% 0' }}>
+      <div style={{ background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)', padding: 'clamp(80px,12vw,120px) 5% 0' }}>
         <div className="container">
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, paddingBottom: 28 }}>
             <div>
