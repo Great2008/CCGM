@@ -1,9 +1,15 @@
+/**
+ * useContent.js
+ * Reads site content from Supabase site_settings table.
+ * Falls back to localStorage cache when offline.
+ */
 import { useState, useEffect } from 'react'
+import supabase from '../lib/supabase'
 
 export const DEFAULTS = {
   homepage: {
     hero: {
-      title: 'Welcome to Christian Church Of God Mission',
+      title: 'Welcome to CCG World',
       subtitle: 'A community rooted in faith, love, and the Word of God. Join us as we worship, grow, and serve together.',
       ctaText: 'Join Us This Saturday',
       ctaLink: '/events',
@@ -24,62 +30,79 @@ export const DEFAULTS = {
       { label: 'Weekly Services',   value: '7' },
       { label: 'Countries Reached', value: '12+' },
     ],
-    contact: { address: '', phone: '', email: 'info@ccogm.org', mapUrl: '' },
+    contact: { address: '', phone: '', email: 'info@ccgworld.org', mapUrl: '' },
   },
 }
 
-const CACHE = 'ccogm_content_'
+const CACHE = 'ccgworld_setting_'
 
-async function fetchContent(filename) {
-  const key = CACHE + filename
+async function fetchSetting(key, fallback) {
+  const cacheKey = CACHE + key
   try {
-    const res = await fetch(`/content/${filename}?t=${Date.now()}`)
-    if (!res.ok) throw new Error()
-    const data = await res.json()
-    try { localStorage.setItem(key, JSON.stringify(data)) } catch {}
-    return data
+    const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).single()
+    if (error || !data) throw new Error(error?.message || 'not found')
+    try { localStorage.setItem(cacheKey, JSON.stringify(data.value)) } catch {}
+    return data.value
   } catch {
-    try { const c = localStorage.getItem(key); if (c) return JSON.parse(c) } catch {}
-    return null
+    try { const c = localStorage.getItem(cacheKey); if (c) return JSON.parse(c) } catch {}
+    return fallback
   }
 }
 
 export function useHomepageContent() {
-  const [data, setData] = useState(DEFAULTS.homepage)
+  const [data, setData]     = useState(DEFAULTS.homepage)
   const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    fetchContent('homepage.json').then(d => {
-      if (d) setData(prev => ({ ...prev, ...d, serviceTimes: d.serviceTimes || prev.serviceTimes }))
+    fetchSetting('homepage', DEFAULTS.homepage).then(d => {
+      setData(prev => ({
+        ...prev, ...d,
+        serviceTimes: d.serviceTimes || prev.serviceTimes,
+        stats:        d.stats        || prev.stats,
+      }))
       setLoading(false)
     })
   }, [])
+
   return { data, loading }
 }
 
 export function useSermonsContent() {
-  const [data, setData] = useState([])
+  const [data, setData]     = useState([])
   const [loading, setLoading] = useState(true)
-  useEffect(() => { fetchContent('sermons.json').then(d => { if (d) setData(d); setLoading(false) }) }, [])
+  useEffect(() => {
+    supabase.from('sermons').select('*').eq('published', true).order('date', { ascending: false })
+      .then(({ data: d }) => { setData(d||[]); setLoading(false) })
+  }, [])
   return { data, loading }
 }
 
 export function useEventsContent() {
-  const [data, setData] = useState([])
+  const [data, setData]     = useState([])
   const [loading, setLoading] = useState(true)
-  useEffect(() => { fetchContent('events.json').then(d => { if (d) setData(d); setLoading(false) }) }, [])
+  useEffect(() => {
+    supabase.from('events').select('*').eq('published', true).order('date', { ascending: true })
+      .then(({ data: d }) => { setData(d||[]); setLoading(false) })
+  }, [])
   return { data, loading }
 }
 
 export function useBlogContent() {
-  const [data, setData] = useState([])
+  const [data, setData]     = useState([])
   const [loading, setLoading] = useState(true)
-  useEffect(() => { fetchContent('blog.json').then(d => { if (d) setData(d); setLoading(false) }) }, [])
+  useEffect(() => {
+    supabase.from('posts').select('*').eq('published', true).order('date', { ascending: false })
+      .then(({ data: d }) => { setData(d||[]); setLoading(false) })
+  }, [])
   return { data, loading }
 }
 
 export function useGalleryContent() {
-  const [data, setData] = useState([])
+  const [data, setData]     = useState([])
   const [loading, setLoading] = useState(true)
-  useEffect(() => { fetchContent('gallery.json').then(d => { if (d) setData(d); setLoading(false) }) }, [])
+  useEffect(() => {
+    supabase.from('gallery').select('*').order('created_at', { ascending: false })
+      .then(({ data: d }) => { setData(d||[]); setLoading(false) })
+  }, [])
   return { data, loading }
 }

@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
-import { useHomepageContent } from '../hooks/useContent'
-import { sermons, events } from '../data/mockData'
+import { useHomepageContent, useSermonsContent, useEventsContent } from '../hooks/useContent'
+import { sermons as mockSermons, events as mockEvents } from '../data/mockData'
 
 export default function Home() {
   const { data: hp } = useHomepageContent()
-  const latestSermon = sermons[0]
-  const upcomingEvents = events.slice(0, 3)
+  const { data: liveSermons } = useSermonsContent()
+  const { data: liveEvents }  = useEventsContent()
+
+  // Use live Supabase data if available, fall back to mock data
+  const latestSermon   = liveSermons[0]  || mockSermons[0]
+  const upcomingEvents = (liveEvents.length > 0 ? liveEvents : mockEvents).slice(0, 3)
 
   return (
     <>
@@ -18,7 +22,7 @@ export default function Home() {
       {/* HERO */}
       <section style={{
         minHeight:'100vh',
-        background:`linear-gradient(160deg,rgba(26,92,42,0.92) 0%,rgba(45,138,72,0.80) 55%,rgba(74,184,102,0.55) 100%),url('https://images.unsplash.com/photo-1438232992991-995b671e4b8b?w=1600&q=80') center/cover no-repeat`,
+        background:`linear-gradient(160deg,rgba(15,31,61,0.92) 0%,rgba(26,58,107,0.85) 55%,rgba(37,99,235,0.4) 100%),url('https://images.unsplash.com/photo-1438232992991-995b671e4b8b?w=1600&q=80') center/cover no-repeat`,
         display:'flex',alignItems:'center',justifyContent:'center',
         textAlign:'center',padding:'clamp(100px,15vw,140px) 20px 80px',
         position:'relative',overflow:'hidden',
@@ -26,9 +30,9 @@ export default function Home() {
       }}>
         <div style={{position:'absolute',right:'-2%',bottom:'2%',fontSize:'clamp(8rem,20vw,22rem)',color:'rgba(255,255,255,0.04)',lineHeight:1,pointerEvents:'none',userSelect:'none'}}>✝</div>
         <div style={{position:'relative',maxWidth:780,width:'100%'}}>
-          <div style={{display:'inline-block',border:'1px solid var(--gold)',color:'var(--gold)',padding:'6px 24px',borderRadius:30,fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.3em',textTransform:'uppercase',marginBottom:28}}>✝ God First</div>
+          <div style={{display:'inline-block',border:'1px solid var(--gold)',color:'var(--gold)',padding:'6px 24px',borderRadius:30,fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.3em',textTransform:'uppercase',marginBottom:28}}>🌐 CCG World</div>
           <h1 style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:'clamp(2rem,6vw,4.4rem)',color:'white',lineHeight:1.12,marginBottom:20,textShadow:'0 2px 24px rgba(0,0,0,0.3)'}}>
-            Welcome to<br /><em style={{fontStyle:'italic',color:'#a8e6b8'}}>Christian Church<br />Of God Mission</em>
+            Welcome to<br /><em style={{fontStyle:'italic',color:'var(--gold)'}}>Christian Church<br />Of God Mission</em>
           </h1>
           <p style={{fontSize:'clamp(0.95rem,2vw,1.1rem)',color:'rgba(255,255,255,0.88)',lineHeight:1.8,maxWidth:540,margin:'0 auto 40px'}}>
             {hp.hero.subtitle}
