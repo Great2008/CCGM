@@ -85,7 +85,7 @@ export default function Hymnal() {
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: selected ? '320px 1fr' : '1fr', gap: 24 }}>
+          <div className="hymnal-layout" style={{ display: 'grid', gridTemplateColumns: selected ? '320px 1fr' : '1fr', gap: 24 }}>
 
             {/* Hymn list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -200,5 +200,10 @@ export default function Hymnal() {
         </div>
       </div>
     </>
+      <style>{`
+        @media(max-width:768px){
+          .hymnal-layout{grid-template-columns:1fr!important;}
+        }
+      `}</style>
   )
 }

@@ -150,3 +150,41 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 }
 @media (max-width: 960px) { .desktop-nav { display: none !important; } .hamburger { display: flex !important; } }
 @media (min-width: 961px) { .hamburger { display: none !important; } }
+
+/* ═══════════════════════════════════════════
+   MOBILE RESPONSIVE — Global Additions
+   ═══════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Prevent horizontal scroll */
+  body { overflow-x: hidden; }
+  section, .container { overflow-x: hidden; }
+
+  /* ── Bible reader ── */
+  .bible-reader-grid { grid-template-columns: 1fr !important; }
+
+  /* ── Devotional two-col ── */
+  .dev-layout { grid-template-columns: 1fr !important; }
+
+  /* ── Hymnal two-col ── */
+  .hymnal-layout { grid-template-columns: 1fr !important; }
+
+  /* ── About ── */
+  .about-mission-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+  .about-values-grid  { grid-template-columns: 1fr !important; }
+
+  /* ── Contact ── */
+  .contact-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+
+  /* ── Blog featured card ── */
+  .blog-featured-card { grid-template-columns: 1fr !important; }
+
+  /* ── General card padding ── */
+  .card { border-radius: 12px; }
+}
+
+@media (max-width: 480px) {
+  .btn { padding: 10px 18px !important; font-size: 0.8rem !important; }
+  .hero-ctas { flex-direction: column !important; align-items: center !important; }
+  .hero-ctas a { width: 100%; max-width: 280px; justify-content: center !important; }
+}

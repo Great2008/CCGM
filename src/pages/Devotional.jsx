@@ -109,7 +109,7 @@ export default function Devotional() {
             }}>⭐ {bookmarked.length}</button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 22 }}>
+          <div className="dev-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 22 }}>
             {/* Sidebar list */}
             <div style={{ maxHeight: 680, overflowY: 'auto', paddingRight: 4 }}>
               {filtered.length === 0 && (
@@ -196,5 +196,12 @@ export default function Devotional() {
         </div>
       </div>
     </>
+      <style>{`
+        @media(max-width:768px){
+          .dev-layout{flex-direction:column!important;}
+          .dev-sidebar{max-height:260px;overflow-y:auto;flex-shrink:0;}
+          .dev-content{width:100%!important;}
+        }
+      `}</style>
   )
 }

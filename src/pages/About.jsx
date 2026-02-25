@@ -24,7 +24,7 @@ export default function About() {
       {/* Mission & Vision */}
       <section style={{ background: 'white', padding: '90px 5%' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+          <div className="about-mission-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
             <div>
               <span className="section-label">Who We Are</span>
               <h2 className="section-title">Our Mission & Vision</h2>
@@ -35,7 +35,7 @@ export default function About() {
               <p style={{ color: 'var(--text-mid)', lineHeight: 1.85, marginBottom: 28, fontSize: '1rem' }}>
                 Our mission is simple: <strong style={{ color: 'var(--green-deep)' }}>God First</strong>. We exist to worship God with everything we have, grow every believer into the fullness of Christ, and carry the Gospel to our community and beyond.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="about-values-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 {[
                   ['🙏', 'Authentic Worship', 'Encountering God through Spirit-filled praise'],
                   ['📖', 'Biblical Teaching', 'Sound doctrine rooted in Scripture'],
@@ -104,5 +104,11 @@ export default function About() {
         </div>
       </section>
     </>
+      <style>{`
+        @media(max-width:768px){
+          .about-mission-grid{grid-template-columns:1fr!important;gap:32px!important;}
+          .about-values-grid{grid-template-columns:1fr!important;}
+        }
+      `}</style>
   )
 }

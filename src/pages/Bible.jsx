@@ -269,7 +269,7 @@ export default function Bible() {
         <div className="container">
 
           {tab === 'read' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, paddingTop: 28 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, paddingTop: 28 }, className='reader-grid'}>
               <div>
                 <div style={{ background: 'white', borderRadius: 14, boxShadow: 'var(--shadow-sm)', overflow: 'hidden', marginBottom: 14 }}>
                   <button onClick={() => setBookOpen(o => !o)} style={{
@@ -415,5 +415,12 @@ export default function Bible() {
         </div>
       </div>
     </>
+      <style>{`
+        @media(max-width:768px){
+          .bible-reader-grid{grid-template-columns:1fr!important;}
+          .bible-sidebar{order:2;}
+          .bible-content{order:1;}
+        }
+      `}</style>
   )
 }

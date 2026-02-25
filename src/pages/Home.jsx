@@ -37,7 +37,7 @@ export default function Home() {
           <p style={{fontSize:'clamp(0.95rem,2vw,1.1rem)',color:'rgba(255,255,255,0.88)',lineHeight:1.8,maxWidth:540,margin:'0 auto 40px'}}>
             {hp.hero.subtitle}
           </p>
-          <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
+          <div className="hero-ctas" style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
             <Link to="/sermons" className="btn btn-gold">🎙 Latest Sermon</Link>
             <Link to={hp.hero.ctaLink||'/events'} className="btn btn-outline-white">{hp.hero.ctaText}</Link>
           </div>
@@ -166,7 +166,7 @@ export default function Home() {
           <p style={{color:'var(--text-mid)',maxWidth:480,margin:'0 auto 36px',lineHeight:1.8}}>
             Whether you're searching for faith, returning to God, or looking for a community — our doors are always open.
           </p>
-          <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
+          <div className="hero-ctas" style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
             <Link to="/about" className="btn btn-green">Learn About Us</Link>
             <Link to="/contact" className="btn btn-outline-green">Get In Touch</Link>
           </div>
@@ -177,7 +177,11 @@ export default function Home() {
         .sermon-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
         @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
-        @media(max-width:768px){.sermon-grid{grid-template-columns:1fr!important;gap:32px!important}}
+        @media(max-width:768px){
+          .sermon-grid{grid-template-columns:1fr!important;gap:32px!important;}
+          .hero-ctas{flex-direction:column;align-items:center;}
+          .hero-ctas a{width:100%;max-width:280px;justify-content:center;}
+        }
       `}</style>
     </>
   )

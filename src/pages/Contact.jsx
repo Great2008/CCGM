@@ -38,7 +38,7 @@ export default function Contact() {
 
       <section style={{ background: 'var(--cream)', padding: '80px 5%' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 60, alignItems: 'start' }}>
+          <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 60, alignItems: 'start' }}>
 
             {/* Info Panel */}
             <div>
@@ -140,5 +140,10 @@ export default function Contact() {
         </div>
       </section>
     </>
+      <style>{`
+        @media(max-width:768px){
+          .contact-grid{grid-template-columns:1fr!important;gap:32px!important;}
+        }
+      `}</style>
   )
 }

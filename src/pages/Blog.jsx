@@ -23,7 +23,7 @@ export default function Blog() {
           {/* Featured */}
           <div style={{ marginBottom: 56 }}>
             <span className="section-label">Featured Post</span>
-            <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', overflow: 'hidden' }}>
+            <div className="card blog-featured-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', overflow: 'hidden' }}>
               <img src={featured.image} alt={featured.title} style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: 300 }} />
               <div style={{ padding: '40px 36px' }}>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center' }}>
@@ -86,5 +86,10 @@ export default function Blog() {
         </div>
       </section>
     </>
+      <style>{`
+        @media(max-width:768px){
+          .blog-featured-card{grid-template-columns:1fr!important;}
+        }
+      `}</style>
   )
 }
