@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useHomepageContent, useSermonsContent, useEventsContent } from '../hooks/useContent'
-import { sermons as mockSermons, events as mockEvents } from '../data/mockData'
+
 
 export default function Home() {
   const { data: hp } = useHomepageContent()
@@ -8,8 +8,8 @@ export default function Home() {
   const { data: liveEvents }  = useEventsContent()
 
   // Use live Supabase data if available, fall back to mock data
-  const latestSermon   = liveSermons[0]  || mockSermons[0]
-  const upcomingEvents = (liveEvents.length > 0 ? liveEvents : mockEvents).slice(0, 3)
+  const latestSermon   = liveSermons[0]  || null
+  const upcomingEvents = liveEvents.slice(0, 3)
 
   return (
     <>
@@ -79,72 +79,93 @@ export default function Home() {
       </section>
 
       {/* LATEST SERMON */}
-      <section style={{background:'var(--green-deep)',padding:'clamp(60px,8vw,90px) 5%'}}>
-        <div className="container">
-          <div className="sermon-grid">
-            <div>
-              <span className="section-label" style={{color:'var(--green-light)'}}>Latest Message</span>
-              <h2 className="section-title" style={{color:'white'}}>{latestSermon.title}</h2>
-              <div className="section-divider" style={{background:'linear-gradient(90deg,var(--green-light),var(--gold))'}} />
-              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16,flexWrap:'wrap'}}>
-                <span className="tag" style={{background:'rgba(255,255,255,0.12)',color:'var(--gold)'}}>{latestSermon.series}</span>
-                <span style={{fontSize:'0.8rem',color:'rgba(255,255,255,0.55)'}}>{latestSermon.date}</span>
+      {latestSermon && (
+        <section style={{background:'var(--green-deep)',padding:'clamp(60px,8vw,90px) 5%'}}>
+          <div className="container">
+            <div className="sermon-grid">
+              <div>
+                <span className="section-label" style={{color:'var(--green-light)'}}>Latest Message</span>
+                <h2 className="section-title" style={{color:'white'}}>{latestSermon.title}</h2>
+                <div className="section-divider" style={{background:'linear-gradient(90deg,var(--green-light),var(--gold))'}} />
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+                  {latestSermon.series && <span className="tag" style={{background:'rgba(255,255,255,0.12)',color:'var(--gold)'}}>{latestSermon.series}</span>}
+                  <span style={{fontSize:'0.8rem',color:'rgba(255,255,255,0.55)'}}>{latestSermon.date}</span>
+                </div>
+                {latestSermon.description && <p style={{color:'rgba(255,255,255,0.78)',lineHeight:1.8,marginBottom:12}}>{latestSermon.description}</p>}
+                {(latestSermon.scripture || latestSermon.pastor) && (
+                  <p style={{color:'var(--green-light)',fontSize:'0.88rem',fontWeight:700,marginBottom:28}}>
+                    {latestSermon.scripture && `📖 ${latestSermon.scripture}`}{latestSermon.scripture && latestSermon.pastor && ' — '}{latestSermon.pastor}
+                  </p>
+                )}
+                <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                  <Link to="/sermons" className="btn btn-gold">▶ Watch Now</Link>
+                  <Link to="/sermons" className="btn btn-outline-white" style={{border:'1.5px solid rgba(255,255,255,0.4)',color:'white'}}>All Sermons →</Link>
+                </div>
               </div>
-              <p style={{color:'rgba(255,255,255,0.78)',lineHeight:1.8,marginBottom:12}}>{latestSermon.description}</p>
-              <p style={{color:'var(--green-light)',fontSize:'0.88rem',fontWeight:700,marginBottom:28}}>📖 {latestSermon.scripture} — {latestSermon.pastor}</p>
-              <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-                <Link to="/sermons" className="btn btn-gold">▶ Watch Now</Link>
-                <Link to="/sermons" className="btn btn-outline-white" style={{border:'1.5px solid rgba(255,255,255,0.4)',color:'white'}}>All Sermons →</Link>
+              <div style={{position:'relative'}}>
+                {latestSermon.thumbnail ? (
+                  <>
+                    <img src={latestSermon.thumbnail} alt={latestSermon.title} style={{width:'100%',borderRadius:16,boxShadow:'0 24px 60px rgba(0,0,0,0.4)'}} />
+                    <div style={{position:'absolute',inset:0,borderRadius:16,background:'rgba(15,31,61,0.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(255,255,255,0.95)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.6rem',boxShadow:'0 8px 30px rgba(0,0,0,0.3)',cursor:'pointer',transition:'transform 0.2s'}}
+                      onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
+                      onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>▶</div>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{height:200,borderRadius:16,background:'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'4rem'}}>🎙</div>
+                )}
+                {latestSermon.duration && (
+                  <div style={{position:'absolute',bottom:-14,left:-14,background:'var(--gold)',color:'var(--brand-deep)',borderRadius:10,padding:'10px 16px',fontWeight:900,fontSize:'0.82rem'}}>🎙 {latestSermon.duration}</div>
+                )}
               </div>
-            </div>
-            <div style={{position:'relative'}}>
-              <img src={latestSermon.thumbnail} alt={latestSermon.title} style={{width:'100%',borderRadius:16,boxShadow:'0 24px 60px rgba(0,0,0,0.4)'}} />
-              <div style={{position:'absolute',inset:0,borderRadius:16,background:'rgba(26,92,42,0.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(255,255,255,0.95)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.6rem',boxShadow:'0 8px 30px rgba(0,0,0,0.3)',cursor:'pointer',transition:'transform 0.2s'}}
-                onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
-                onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>▶</div>
-              </div>
-              <div style={{position:'absolute',bottom:-14,left:-14,background:'var(--gold)',color:'var(--green-deep)',borderRadius:10,padding:'10px 16px',fontWeight:900,fontSize:'0.82rem'}}>🎙 {latestSermon.duration}</div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* EVENTS */}
-      <section style={{background:'var(--cream)',padding:'clamp(60px,8vw,90px) 5%'}}>
-        <div className="container">
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:40,flexWrap:'wrap',gap:16}}>
-            <div>
-              <span className="section-label">What's Coming Up</span>
-              <h2 className="section-title">Upcoming Events</h2>
-              <div className="section-divider" />
-            </div>
-            <Link to="/events" className="btn btn-outline-green">View All →</Link>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:22}}>
-            {upcomingEvents.map(event=>(
-              <div key={event.id} className="card">
-                <div style={{position:'relative',overflow:'hidden',height:170}}>
-                  <img src={event.image} alt={event.title} style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform 0.4s'}}
-                    onMouseEnter={e=>e.target.style.transform='scale(1.06)'}
-                    onMouseLeave={e=>e.target.style.transform='scale(1)'} />
-                  <div style={{position:'absolute',top:12,left:12}}><span className="tag">{event.category}</span></div>
-                </div>
-                <div style={{padding:'18px 20px'}}>
-                  <div style={{display:'flex',gap:8,marginBottom:8,fontSize:'0.8rem',color:'var(--text-light)',flexWrap:'wrap'}}>
-                    <span>📅 {event.date}</span><span>·</span><span>⏰ {event.time}</span>
-                  </div>
-                  <h3 style={{fontFamily:'var(--font-display)',fontSize:'1.1rem',color:'var(--green-deep)',marginBottom:8}}>{event.title}</h3>
-                  <p style={{fontSize:'0.86rem',color:'var(--text-mid)',lineHeight:1.65}}>{event.description}</p>
-                  <div style={{marginTop:14,fontSize:'0.8rem',color:'var(--green-mid)',fontWeight:700}}>📍 {event.location}</div>
-                </div>
+      {upcomingEvents.length > 0 && (
+        <section style={{background:'var(--cream)',padding:'clamp(60px,8vw,90px) 5%'}}>
+          <div className="container">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:40,flexWrap:'wrap',gap:16}}>
+              <div>
+                <span className="section-label">What's Coming Up</span>
+                <h2 className="section-title">Upcoming Events</h2>
+                <div className="section-divider" />
               </div>
-            ))}
+              <Link to="/events" className="btn btn-outline-green">View All →</Link>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:22}}>
+              {upcomingEvents.map(event=>(
+                <div key={event.id} className="card">
+                  {event.image ? (
+                    <div style={{position:'relative',overflow:'hidden',height:170}}>
+                      <img src={event.image} alt={event.title} style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform 0.4s'}}
+                        onMouseEnter={e=>e.target.style.transform='scale(1.06)'}
+                        onMouseLeave={e=>e.target.style.transform='scale(1)'} />
+                      {event.category && <div style={{position:'absolute',top:12,left:12}}><span className="tag">{event.category}</span></div>}
+                    </div>
+                  ) : (
+                    <div style={{height:100,background:'linear-gradient(135deg,var(--brand-deep),var(--brand-mid))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'2.5rem'}}>📅</div>
+                  )}
+                  <div style={{padding:'18px 20px'}}>
+                    <div style={{display:'flex',gap:8,marginBottom:8,fontSize:'0.8rem',color:'var(--text-light)',flexWrap:'wrap'}}>
+                      {event.date && <span>📅 {event.date}</span>}
+                      {event.date && event.time && <span>·</span>}
+                      {event.time && <span>⏰ {event.time}</span>}
+                    </div>
+                    <h3 style={{fontFamily:'var(--font-display)',fontSize:'1.1rem',color:'var(--brand-deep)',marginBottom:8}}>{event.title}</h3>
+                    {event.description && <p style={{fontSize:'0.86rem',color:'var(--text-mid)',lineHeight:1.65}}>{event.description}</p>}
+                    {event.location && <div style={{marginTop:14,fontSize:'0.8rem',color:'var(--brand-mid)',fontWeight:700}}>📍 {event.location}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* STATS */}
       <section style={{background:'linear-gradient(135deg,var(--green-deep),var(--green-mid))',padding:'clamp(50px,7vw,80px) 5%'}}>
         <div className="container">
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:24,textAlign:'center'}}>

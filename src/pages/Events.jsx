@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { events } from '../data/mockData'
+import { useEventsContent } from '../hooks/useContent'
 
 export default function Events() {
+  const { data: events, loading } = useEventsContent()
   const [filter, setFilter] = useState('All')
-  const categories = ['All', ...new Set(events.map(e => e.category))]
+
+  const categories = ['All', ...new Set(events.map(e => e.category).filter(Boolean))]
   const filtered = filter === 'All' ? events : events.filter(e => e.category === filter)
 
   return (
@@ -23,63 +25,123 @@ export default function Events() {
 
       <section style={{ background: 'var(--cream)', padding: '60px 5%' }}>
         <div className="container">
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 40, flexWrap: 'wrap' }}>
-            {categories.map(cat => (
-              <button key={cat} onClick={() => setFilter(cat)} style={{
-                padding: '9px 22px', borderRadius: 30,
-                border: '1.5px solid', borderColor: filter === cat ? 'var(--green-mid)' : '#ddd',
-                background: filter === cat ? 'var(--green-mid)' : 'white',
-                color: filter === cat ? 'white' : 'var(--text-mid)',
-                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
-              }}>
-                {cat}
-              </button>
-            ))}
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 26 }}>
-            {filtered.map(event => (
-              <div key={event.id} className="card">
-                <div style={{ position: 'relative', height: 210, overflow: 'hidden' }}>
-                  <img src={event.image} alt={event.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
-                    onMouseEnter={e => e.target.style.transform = 'scale(1.07)'}
-                    onMouseLeave={e => e.target.style.transform = 'scale(1)'} />
-                  <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
-                    <span className="tag">{event.category}</span>
-                    {event.recurring && (
-                      <span style={{ background: 'var(--gold)', color: 'var(--green-deep)', padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700 }}>
-                        Recurring
-                      </span>
-                    )}
-                  </div>
+          {/* Loading */}
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-light)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 16, animation: 'pulse 1.5s infinite' }}>📅</div>
+              <p>Loading events...</p>
+            </div>
+          )}
+
+          {/* Has data */}
+          {!loading && events.length > 0 && (
+            <>
+              {categories.length > 1 && (
+                <div style={{ display: 'flex', gap: 10, marginBottom: 40, flexWrap: 'wrap' }}>
+                  {categories.map(cat => (
+                    <button key={cat} onClick={() => setFilter(cat)} style={{
+                      padding: '9px 22px', borderRadius: 30, border: '1.5px solid',
+                      borderColor: filter === cat ? 'var(--brand-mid)' : '#ddd',
+                      background: filter === cat ? 'var(--brand-mid)' : 'white',
+                      color: filter === cat ? 'white' : 'var(--text-mid)',
+                      fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
+                    }}>{cat}</button>
+                  ))}
                 </div>
-                <div style={{ padding: '24px' }}>
-                  {/* Date block */}
-                  <div style={{
-                    display: 'inline-flex', gap: 16, alignItems: 'center',
-                    background: 'var(--green-pale)', borderRadius: 8,
-                    padding: '8px 14px', marginBottom: 14, fontSize: '0.82rem', color: 'var(--green-deep)',
-                  }}>
-                    <span>📅 {event.date}</span>
-                    <span>⏰ {event.time}</span>
-                  </div>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--green-deep)', marginBottom: 10 }}>
-                    {event.title}
-                  </h3>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-mid)', lineHeight: 1.65, marginBottom: 14 }}>
-                    {event.description}
-                  </p>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--green-mid)', fontWeight: 700 }}>
-                    📍 {event.location}
-                  </div>
+              )}
+
+              {filtered.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 26 }}>
+                  {filtered.map(event => (
+                    <div key={event.id} className="card">
+                      {event.image ? (
+                        <div style={{ position: 'relative', height: 210, overflow: 'hidden' }}>
+                          <img src={event.image} alt={event.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
+                            onMouseEnter={e => e.target.style.transform = 'scale(1.07)'}
+                            onMouseLeave={e => e.target.style.transform = 'scale(1)'} />
+                          <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
+                            {event.category && <span className="tag">{event.category}</span>}
+                            {event.recurring && (
+                              <span style={{ background: 'var(--gold)', color: 'var(--brand-deep)', padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700 }}>
+                                Recurring
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{
+                          height: 100, background: 'linear-gradient(135deg, var(--brand-deep), var(--brand-mid))',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+                        }}>
+                          <span style={{ fontSize: '2.5rem' }}>📅</span>
+                          <div style={{ position: 'absolute', top: 10, left: 12, display: 'flex', gap: 6 }}>
+                            {event.category && <span className="tag">{event.category}</span>}
+                            {event.recurring && (
+                              <span style={{ background: 'var(--gold)', color: 'var(--brand-deep)', padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700 }}>
+                                Recurring
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ padding: '24px' }}>
+                        <div style={{
+                          display: 'inline-flex', gap: 16, alignItems: 'center',
+                          background: 'var(--brand-pale)', borderRadius: 8,
+                          padding: '8px 14px', marginBottom: 14, fontSize: '0.82rem', color: 'var(--brand-deep)',
+                          flexWrap: 'wrap',
+                        }}>
+                          {event.date && <span>📅 {event.date}</span>}
+                          {event.time && <span>⏰ {event.time}</span>}
+                        </div>
+                        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--brand-deep)', marginBottom: 10 }}>
+                          {event.title}
+                        </h3>
+                        {event.description && (
+                          <p style={{ fontSize: '0.88rem', color: 'var(--text-mid)', lineHeight: 1.65, marginBottom: 14 }}>
+                            {event.description}
+                          </p>
+                        )}
+                        {event.location && (
+                          <div style={{ fontSize: '0.82rem', color: 'var(--brand-mid)', fontWeight: 700 }}>
+                            📍 {event.location}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-light)' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: 16 }}>🔍</div>
+                  <p>No events found in this category.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Empty state */}
+          {!loading && events.length === 0 && (
+            <div style={{
+              textAlign: 'center', padding: '80px 20px',
+              background: 'white', borderRadius: 20, boxShadow: 'var(--shadow-sm)',
+            }}>
+              <div style={{ fontSize: '4rem', marginBottom: 20 }}>📅</div>
+              <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.5rem', marginBottom: 12 }}>
+                No Events Scheduled Yet
+              </h3>
+              <p style={{ color: 'var(--text-mid)', maxWidth: 400, margin: '0 auto', lineHeight: 1.8 }}>
+                There are no upcoming events at the moment. Check back soon — we'll be posting services and gatherings here regularly.
+              </p>
+            </div>
+          )}
+
         </div>
       </section>
+
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </>
   )
 }
