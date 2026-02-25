@@ -1,14 +1,12 @@
 {
-  "name": "ccogm-website",
-  "version": "1.0.0",
-  "description": "Christian Church Of God Mission — Official Website",
+  "name": "ccgworld",
+  "version": "2.0.0",
+  "description": "CCG World — Christian Church Of God Mission",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "fetch-bible": "node scripts/fetchBible.js",
-    "fetch-bible:fallback": "node scripts/fetchBibleFallback.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -20,7 +18,8 @@
     "react-player": "^2.16.0",
     "react-hook-form": "^7.53.0",
     "date-fns": "^4.1.0",
-    "clsx": "^2.1.1"
+    "clsx": "^2.1.1",
+    "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
