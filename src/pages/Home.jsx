@@ -1,11 +1,25 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useHomepageContent, useSermonsContent, useEventsContent } from '../hooks/useContent'
-
+import supabase from '../lib/supabase'
 
 export default function Home() {
   const { data: hp } = useHomepageContent()
   const { data: liveSermons } = useSermonsContent()
   const { data: liveEvents }  = useEventsContent()
+  const [liveData, setLiveData] = useState(null)
+
+  useEffect(() => {
+    supabase.from('site_settings').select('value').eq('key','live').single()
+      .then(({ data }) => setLiveData(data?.value || null))
+    const sub = supabase.channel('home-live')
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'site_settings', filter:'key=eq.live' },
+        payload => setLiveData(payload.new.value))
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [])
+
+  const isLive = liveData?.isLive
 
   // Use live Supabase data if available, fall back to mock data
   const latestSermon   = liveSermons[0]  || null
@@ -41,9 +55,21 @@ export default function Home() {
             <Link to="/sermons" className="btn btn-gold">🎙 Latest Sermon</Link>
             <Link to={hp.hero.ctaLink||'/events'} className="btn btn-outline-white">{hp.hero.ctaText}</Link>
           </div>
-          <div style={{marginTop:48,display:'inline-flex',alignItems:'center',gap:10,background:'rgba(255,255,255,0.12)',backdropFilter:'blur(8px)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:40,padding:'10px 24px'}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:'#ff4444',animation:'pulse 1.5s infinite',display:'inline-block'}} />
-            <span style={{color:'white',fontSize:'0.88rem',fontWeight:700}}>🌟 Divine Service every Saturday</span>
+          <div style={{marginTop:48,display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',alignItems:'center'}}>
+            {isLive ? (
+              <Link to="/live" style={{display:'inline-flex',alignItems:'center',gap:10,background:'#dc2626',border:'none',borderRadius:40,padding:'10px 24px',textDecoration:'none',animation:'pulse 1.5s infinite'}}>
+                <span style={{width:8,height:8,borderRadius:'50%',background:'white',display:'inline-block'}} />
+                <span style={{color:'white',fontSize:'0.88rem',fontWeight:900}}>🔴 We Are Live — Watch Now</span>
+              </Link>
+            ) : (
+              <div style={{display:'inline-flex',alignItems:'center',gap:10,background:'rgba(255,255,255,0.12)',backdropFilter:'blur(8px)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:40,padding:'10px 24px'}}>
+                <span style={{width:8,height:8,borderRadius:'50%',background:'#ff4444',animation:'pulse 1.5s infinite',display:'inline-block'}} />
+                <span style={{color:'white',fontSize:'0.88rem',fontWeight:700}}>🌟 Divine Service every Saturday</span>
+              </div>
+            )}
+            <Link to="/live" style={{display:'inline-flex',alignItems:'center',gap:6,color:'rgba(255,255,255,0.6)',fontSize:'0.8rem',textDecoration:'none',border:'1px solid rgba(255,255,255,0.15)',borderRadius:30,padding:'8px 18px'}}>
+              📡 View Schedule
+            </Link>
           </div>
         </div>
         <div style={{position:'absolute',bottom:28,left:'50%',transform:'translateX(-50%)',color:'rgba(255,255,255,0.45)',fontSize:'0.72rem',letterSpacing:'0.18em',textTransform:'uppercase',display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>

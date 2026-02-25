@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import supabase from '../lib/supabase'
 
 const NAV_LINKS = [
   { to:'/',         label:'Home' },
@@ -14,15 +15,16 @@ const NAV_LINKS = [
 ]
 
 const OFFLINE_LINKS = [
-  { to:'/bible',      label:'📖 Bible',       sub:'Full KJV offline' },
-  { to:'/hymnal',     label:'🎵 Hymnal',       sub:'Songs & lyrics' },
-  { to:'/devotional', label:'🌅 Daily Word',   sub:'365 devotionals' },
+  { to:'/bible',      label:'📖 Bible',     sub:'Full KJV offline' },
+  { to:'/hymnal',     label:'🎵 Hymnal',     sub:'Songs & lyrics' },
+  { to:'/devotional', label:'🌅 Daily Word', sub:'365 devotionals' },
 ]
 
 export default function Navbar() {
-  const [scrolled, setScrolled]   = useState(false)
-  const [menuOpen, setMenuOpen]   = useState(false)
+  const [scrolled, setScrolled]     = useState(false)
+  const [menuOpen, setMenuOpen]     = useState(false)
   const [offlineOpen, setOfflineOpen] = useState(false)
+  const [isLive, setIsLive]         = useState(false)
   const { pathname } = useLocation()
   const { user, profile, signOut } = useAuth()
 
@@ -33,15 +35,40 @@ export default function Navbar() {
   }, [])
   useEffect(() => { setMenuOpen(false); setOfflineOpen(false) }, [pathname])
 
-  const isHome = pathname==='/'
-  const solid  = scrolled || !isHome || menuOpen
+  // Check live status
+  useEffect(() => {
+    supabase.from('site_settings').select('value').eq('key','live').single()
+      .then(({ data }) => setIsLive(!!data?.value?.isLive))
+    const sub = supabase.channel('nav-live')
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'site_settings', filter:'key=eq.live' },
+        payload => setIsLive(!!payload.new.value?.isLive))
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [])
 
+  const isHome = pathname === '/'
+  const solid  = scrolled || !isHome || menuOpen
   const initials = (profile?.display_name || profile?.full_name || '?').charAt(0).toUpperCase()
+
+  const LiveLink = ({ mobile }) => (
+    <Link to="/live" style={{
+      display:'flex', alignItems:'center', gap:6,
+      color: pathname==='/live' ? 'var(--gold)' : isLive ? '#ff4444' : 'rgba(255,255,255,0.82)',
+      fontWeight: pathname==='/live' || isLive ? 700 : 500,
+      fontSize: mobile ? '0.95rem' : '0.82rem',
+      padding: mobile ? '12px 22px' : '6px 10px',
+      borderRadius:6, textDecoration:'none',
+      borderLeft: mobile ? (pathname==='/live' ? '3px solid var(--gold)' : '3px solid transparent') : 'none',
+    }}>
+      {isLive && <span style={{width:7,height:7,borderRadius:'50%',background:'#ff4444',animation:'blink 1s infinite',display:'inline-block',flexShrink:0}} />}
+      📡 Live{isLive ? ' Now' : ''}
+    </Link>
+  )
 
   return (
     <>
       <nav style={{
-        position:'fixed',top:0,left:0,right:0,zIndex:1000,
+        position:'fixed', top:0, left:0, right:0, zIndex:1000,
         background: solid ? 'rgba(15,31,61,0.97)' : 'transparent',
         backdropFilter: solid ? 'blur(14px)' : 'none',
         boxShadow: solid ? '0 2px 24px rgba(0,0,0,0.22)' : 'none',
@@ -65,13 +92,17 @@ export default function Navbar() {
               <Link key={to} to={to} style={{
                 color: pathname===to ? 'var(--gold)' : 'rgba(255,255,255,0.82)',
                 fontWeight: pathname===to ? 700 : 500,
-                fontSize:'0.82rem', padding:'6px 10px', borderRadius:6, textDecoration:'none', transition:'color 0.2s', whiteSpace:'nowrap',
+                fontSize:'0.82rem', padding:'6px 10px', borderRadius:6,
+                textDecoration:'none', transition:'color 0.2s', whiteSpace:'nowrap',
               }}
               onMouseEnter={e=>{if(pathname!==to)e.target.style.color='white'}}
               onMouseLeave={e=>{if(pathname!==to)e.target.style.color='rgba(255,255,255,0.82)'}}>
                 {label}
               </Link>
             ))}
+
+            {/* Live link */}
+            <LiveLink />
 
             {/* Offline dropdown */}
             <div style={{position:'relative'}}>
@@ -97,7 +128,7 @@ export default function Navbar() {
             {/* Auth */}
             {user ? (
               <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:6}}>
-                <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,var(--brand-light),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:900,fontSize:'0.9rem',cursor:'pointer',flexShrink:0}}>
+                <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,var(--brand-light),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:900,fontSize:'0.9rem',flexShrink:0}}>
                   {profile?.avatar_url ? <img src={profile.avatar_url} alt="" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} /> : initials}
                 </div>
                 <button onClick={signOut} style={{color:'rgba(255,255,255,0.5)',background:'none',border:'none',cursor:'pointer',fontSize:'0.75rem',fontFamily:'var(--font-body)'}}>Sign out</button>
@@ -147,12 +178,13 @@ export default function Navbar() {
             <Link key={to} to={to} style={{
               display:'block',padding:'12px 22px',
               color:pathname===to?'var(--gold)':'rgba(255,255,255,0.82)',
-              fontWeight:pathname===to?700:400,
-              fontSize:'0.95rem',textDecoration:'none',
+              fontWeight:pathname===to?700:400,fontSize:'0.95rem',textDecoration:'none',
               borderLeft:pathname===to?'3px solid var(--gold)':'3px solid transparent',
               transition:'all 0.2s',
             }}>{label}</Link>
           ))}
+          {/* Live in mobile */}
+          <LiveLink mobile />
           <div style={{margin:'12px 20px 6px',fontSize:'0.65rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)'}}>Offline Resources</div>
           {OFFLINE_LINKS.map(({to,label,sub})=>(
             <Link key={to} to={to} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 22px',color:'rgba(255,255,255,0.75)',fontSize:'0.9rem',textDecoration:'none'}}>
@@ -175,6 +207,7 @@ export default function Navbar() {
       </div>
 
       <style>{`
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
         @media(max-width:960px){.desktop-nav{display:none!important;}.hamburger{display:flex!important;}}
         @media(min-width:961px){.hamburger{display:none!important;}}
       `}</style>

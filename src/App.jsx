@@ -1,18 +1,19 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
-import Navbar    from './components/Navbar'
-import Footer    from './components/Footer'
-import Home      from './pages/Home'
-import Sermons   from './pages/Sermons'
-import Events    from './pages/Events'
-import About     from './pages/About'
-import Contact   from './pages/Contact'
-import Gallery   from './pages/Gallery'
-import Blog      from './pages/Blog'
-import Bible     from './pages/Bible'
-import Hymnal    from './pages/Hymnal'
+import Navbar     from './components/Navbar'
+import Footer     from './components/Footer'
+import Home       from './pages/Home'
+import Sermons    from './pages/Sermons'
+import Events     from './pages/Events'
+import About      from './pages/About'
+import Contact    from './pages/Contact'
+import Gallery    from './pages/Gallery'
+import Blog       from './pages/Blog'
+import Bible      from './pages/Bible'
+import Hymnal     from './pages/Hymnal'
 import Devotional from './pages/Devotional'
-import Timeline  from './pages/Timeline'
+import Timeline   from './pages/Timeline'
+import Live       from './pages/Live'
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/hymnal"     element={<Hymnal />} />
             <Route path="/devotional" element={<Devotional />} />
             <Route path="/timeline"   element={<Timeline />} />
+            <Route path="/live"       element={<Live />} />
           </Routes>
         </main>
         <Footer />
