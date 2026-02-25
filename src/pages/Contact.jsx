@@ -44,9 +44,9 @@ export default function Contact() {
             <div>
               <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--green-deep)', fontSize: '1.6rem', marginBottom: 28 }}>Find Us</h2>
               {[
-                { icon: '📍', title: 'Address', detail: '123 Faith Avenue\nYour City, Country' },
-                { icon: '📞', title: 'Phone', detail: '+1 (555) 000-0000' },
-                { icon: '✉️', title: 'Email', detail: 'info@ccogm.org' },
+                { icon: '📍', title: 'Address', detail: '131 Ahoada Road \n Omoku,Rivers State,Nigeria' },
+                { icon: '📞', title: 'Phone', detail: '+234 nil' },
+                { icon: '✉️', title: 'Email', detail: 'ccgmworldwide@gmail.com' },
                 { icon: '🕐', title: 'Office Hours', detail: 'Mon–Fri: 9 AM – 5 PM\nWeekends: Church Hours' },
               ].map(({ icon, title, detail }) => (
                 <div key={title} style={{
