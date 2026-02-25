@@ -70,7 +70,7 @@ export default function Contact() {
                 <p style={{ fontSize: '0.88rem', color: 'var(--text-mid)', lineHeight: 1.7 }}>
                   Our prayer team is committed to standing with you in faith at any hour.
                 </p>
-                <div style={{ fontWeight: 700, color: 'var(--green-mid)', marginTop: 8 }}>+1 (555) 000-0001</div>
+                <div style={{ fontWeight: 700, color: 'var(--green-mid)', marginTop: 8 }}>+234 nil</div>
               </div>
             </div>
 
