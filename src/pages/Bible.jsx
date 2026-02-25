@@ -269,7 +269,7 @@ export default function Bible() {
         <div className="container">
 
           {tab === 'read' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, paddingTop: 28 }, className='reader-grid'}>
+            <div className="bible-reader-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, paddingTop: 28 }}>
               <div>
                 <div style={{ background: 'white', borderRadius: 14, boxShadow: 'var(--shadow-sm)', overflow: 'hidden', marginBottom: 14 }}>
                   <button onClick={() => setBookOpen(o => !o)} style={{
