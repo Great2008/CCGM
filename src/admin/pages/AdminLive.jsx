@@ -66,7 +66,7 @@ export default function AdminLive() {
                 }
               }
             })
-            showToast(\`Live notification sent to \${subs.length} subscribers!\`)
+            showToast("Live notification sent to " + subs.length + " subscribers!")
           }
         } catch(e) { console.log('Push skipped:', e.message) }
       }
