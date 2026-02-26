@@ -6,11 +6,26 @@ const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Satur
 
 function pad(n) { return String(n).padStart(2,'0') }
 
+function parseEventDate(dateStr, timeStr) {
+  if (!dateStr) return new Date()
+  if (!timeStr) return new Date(dateStr + 'T00:00:00')
+  // Parse "9:00 AM" / "10:30 PM" style times
+  const match = timeStr.match(/^(\d{1,2}):?(\d{0,2})\s*(AM|PM)?$/i)
+  if (!match) return new Date(dateStr + 'T00:00:00')
+  let h = parseInt(match[1])
+  const m = parseInt(match[2] || '0')
+  const period = (match[3] || '').toUpperCase()
+  if (period === 'PM' && h !== 12) h += 12
+  if (period === 'AM' && h === 12) h = 0
+  return new Date(`${dateStr}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`)
+}
+
 function Countdown({ target }) {
   const [diff, setDiff] = useState(0)
 
   useEffect(() => {
-    const calc = () => setDiff(Math.max(0, new Date(target) - Date.now()))
+    const t = target instanceof Date ? target : new Date(target)
+    const calc = () => setDiff(Math.max(0, t - Date.now()))
     calc()
     const id = setInterval(calc, 1000)
     return () => clearInterval(id)
@@ -244,7 +259,7 @@ export default function Live() {
             <p style={{color:'var(--text-light)',fontSize:'0.88rem',marginBottom:24}}>Mark your calendar — these will be broadcast live</p>
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
               {(settings.specialEvents||[]).filter(e=>e.title&&e.date&&new Date(e.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).map((ev,i)=>{
-                const target = new Date(`${ev.date}${ev.time?' '+ev.time:''}`)
+                const target = parseEventDate(ev.date, ev.time)
                 const isPast = target < new Date()
                 return (
                   <div key={i} style={{background:'white',borderRadius:16,padding:'22px 24px',boxShadow:'var(--shadow-sm)',border:'1.5px solid #e2e8f0'}}>
