@@ -84,6 +84,54 @@ function getNextService(schedule) {
   return null
 }
 
+function SimpleCountdown({ target }) {
+  const calc = () => {
+    const ms = target - Date.now()
+    if (ms <= 0) return { d:0, h:0, m:0, s:0, done:true }
+    const total = Math.floor(ms / 1000)
+    return {
+      d: Math.floor(total / 86400),
+      h: Math.floor((total % 86400) / 3600),
+      m: Math.floor((total % 3600) / 60),
+      s: total % 60,
+      done: false
+    }
+  }
+  const [t, setT] = useState(calc)
+  useEffect(() => {
+    const id = setInterval(() => setT(calc()), 1000)
+    return () => clearInterval(id)
+  }, [target])
+
+  if (t.done) return (
+    <div style={{textAlign:'center',padding:'12px',color:'#dc2626',fontWeight:900,fontSize:'1rem'}}>🔴 Starting now!</div>
+  )
+
+  const BOX = ({val, label}) => (
+    <div style={{textAlign:'center'}}>
+      <div style={{
+        background:'var(--brand-deep)', color:'white',
+        borderRadius:10, padding:'10px 14px',
+        fontFamily:'var(--font-display)', fontSize:'1.8rem', fontWeight:900,
+        minWidth:56, lineHeight:1
+      }}>{String(val).padStart(2,'0')}</div>
+      <div style={{fontSize:'0.65rem',color:'#94a3b8',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:5}}>{label}</div>
+    </div>
+  )
+
+  return (
+    <div style={{borderTop:'1px solid #f1f5f9', paddingTop:16, marginTop:8}}>
+      <div style={{fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'#94a3b8',marginBottom:12,textAlign:'center'}}>⏳ Starts In</div>
+      <div style={{display:'flex', gap:10, justifyContent:'center'}}>
+        <BOX val={t.d} label="Days" />
+        <BOX val={t.h} label="Hours" />
+        <BOX val={t.m} label="Mins" />
+        <BOX val={t.s} label="Secs" />
+      </div>
+    </div>
+  )
+}
+
 export default function Live() {
   const [settings, setSettings] = useState(null)
   const [loading, setLoading]   = useState(true)
@@ -279,10 +327,7 @@ export default function Live() {
                     </div>
                     {/* Countdown — always full width below */}
                     {ev.broadcast!==false&&!isPast&&(
-                      <div style={{borderTop:'1px solid #f1f5f9',paddingTop:16,marginTop:4}}>
-                        <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10,textAlign:'center'}}>⏳ Starts In</div>
-                        <Countdown target={target} />
-                      </div>
+                      <SimpleCountdown target={target} />
                     )}
                   </div>
                 )
