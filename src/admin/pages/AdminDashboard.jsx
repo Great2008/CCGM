@@ -13,8 +13,8 @@ export default function AdminDashboard() {
       const [s,e,b,p,g,m,pen,t] = await Promise.all([
         supabase.from('sermons').select('*',{count:'exact',head:true}),
         supabase.from('events').select('*',{count:'exact',head:true}),
-        supabase.from('blog_posts').select('*',{count:'exact',head:true}),
-        supabase.from('prayer_requests').select('*',{count:'exact',head:true}),
+        supabase.from('posts').select('*',{count:'exact',head:true}),
+        supabase.from('prayers').select('*',{count:'exact',head:true}),
         supabase.from('gallery').select('*',{count:'exact',head:true}),
         supabase.from('profiles').select('*',{count:'exact',head:true}).eq('approved',true),
         supabase.from('profiles').select('*',{count:'exact',head:true}).eq('approved',false),

@@ -1,9 +1,29 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useEventsContent } from '../hooks/useContent'
+import { useAuth } from '../contexts/AuthContext'
+import supabase from '../lib/supabase'
 
 export default function Events() {
   const { data: events, loading } = useEventsContent()
   const [filter, setFilter] = useState('All')
+  const [rsvpd, setRsvpd] = useState({})
+  const [rsvping, setRsvping] = useState({})
+  const { user, isApproved } = useAuth()
+
+  const handleRsvp = async (event) => {
+    if (!user || !isApproved) return
+    setRsvping(r=>({...r,[event.id]:true}))
+    if (rsvpd[event.id]) {
+      // Un-RSVP
+      await supabase.from('event_registrations').delete().eq('event_id',event.id).eq('user_id',user.id)
+      setRsvpd(r=>({...r,[event.id]:false}))
+    } else {
+      const { error } = await supabase.from('event_registrations').insert({ event_id:event.id, user_id:user.id })
+      if (!error) setRsvpd(r=>({...r,[event.id]:true}))
+    }
+    setRsvping(r=>({...r,[event.id]:false}))
+  }
 
   const categories = ['All', ...new Set(events.map(e => e.category).filter(Boolean))]
   const filtered = filter === 'All' ? events : events.filter(e => e.category === filter)
@@ -109,6 +129,27 @@ export default function Events() {
                             📍 {event.location}
                           </div>
                         )}
+                        <div style={{ marginTop: 16, display:'flex', gap:8, flexWrap:'wrap' }}>
+                          {user && isApproved ? (
+                            <button onClick={()=>handleRsvp(event)} disabled={rsvping[event.id]}
+                              style={{ padding:'9px 20px', borderRadius:30, border:'1.5px solid', fontFamily:'var(--font-body)', fontWeight:700, fontSize:'0.82rem', cursor:'pointer', transition:'all 0.2s',
+                                borderColor: rsvpd[event.id] ? '#bbf7d0' : 'var(--brand-light)',
+                                background: rsvpd[event.id] ? '#f0fdf4' : 'var(--brand-light)',
+                                color: rsvpd[event.id] ? '#16a34a' : 'white',
+                              }}>
+                              {rsvping[event.id] ? '⏳' : rsvpd[event.id] ? '✅ Attending' : '📋 RSVP'}
+                            </button>
+                          ) : !user ? (
+                            <Link to="/timeline" style={{ padding:'9px 20px', borderRadius:30, background:'var(--brand-pale)', color:'var(--brand-light)', fontWeight:700, fontSize:'0.82rem', textDecoration:'none', border:'1.5px solid #bfdbfe' }}>
+                              🔐 Sign in to RSVP
+                            </Link>
+                          ) : null}
+                          {event.registration_url && (
+                            <a href={event.registration_url} target="_blank" rel="noreferrer" style={{ padding:'9px 20px', borderRadius:30, background:'#f8fafc', color:'var(--text-mid)', fontWeight:700, fontSize:'0.82rem', textDecoration:'none', border:'1.5px solid #e2e8f0' }}>
+                              External Reg →
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
