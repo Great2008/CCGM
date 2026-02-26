@@ -237,6 +237,38 @@ export default function Live() {
           </div>
         )}
 
+        {/* SPECIAL EVENTS */}
+        {(settings?.specialEvents||[]).filter(e=>e.title&&e.date).length > 0 && (
+          <div style={{marginBottom:40}}>
+            <h2 style={{fontFamily:'var(--font-display)',color:'var(--brand-deep)',fontSize:'1.6rem',marginBottom:6}}>🎊 Upcoming Special Events</h2>
+            <p style={{color:'var(--text-light)',fontSize:'0.88rem',marginBottom:24}}>Mark your calendar — these will be broadcast live</p>
+            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+              {(settings.specialEvents||[]).filter(e=>e.title&&e.date&&new Date(e.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).map((ev,i)=>{
+                const target = new Date(`${ev.date}${ev.time?' '+ev.time:''}`)
+                const isPast = target < new Date()
+                return (
+                  <div key={i} style={{background:'white',borderRadius:16,padding:'22px 24px',boxShadow:'var(--shadow-sm)',border:'1.5px solid #e2e8f0',display:'flex',gap:20,alignItems:'flex-start',flexWrap:'wrap'}}>
+                    <div style={{fontSize:'2.5rem',flexShrink:0}}>{ev.icon||'🎊'}</div>
+                    <div style={{flex:1,minWidth:200}}>
+                      <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1.15rem',color:'var(--brand-deep)',marginBottom:4}}>{ev.title}</div>
+                      <div style={{fontSize:'0.82rem',color:'var(--brand-light)',fontWeight:700,marginBottom:ev.description?8:0}}>
+                        📅 {new Date(ev.date).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}{ev.time&&` · 🕐 ${ev.time}`}
+                      </div>
+                      {ev.description&&<div style={{fontSize:'0.88rem',color:'var(--text-mid)',lineHeight:1.65}}>{ev.description}</div>}
+                    </div>
+                    {ev.broadcast!==false&&!isPast&&(
+                      <div style={{textAlign:'center',flexShrink:0}}>
+                        <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:8}}>Starts in</div>
+                        <Countdown target={target} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* HOW TO WATCH */}
         <div style={{background:'var(--brand-pale)',borderRadius:16,padding:'28px 28px'}}>
           <h3 style={{fontFamily:'var(--font-display)',color:'var(--brand-deep)',fontSize:'1.2rem',margin:'0 0 16px'}}>📱 How to Watch</h3>

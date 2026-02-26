@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useHomepageContent } from '../hooks/useContent'
 import supabase from '../lib/supabase'
 
 export default function Contact() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', subject: 'Prayer Request', message: '' })
+  const { data: hp } = useHomepageContent()
+  const [form, setForm] = useState({ name:'', email:'', phone:'', subject:'Prayer Request', message:'' })
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -13,145 +15,118 @@ export default function Contact() {
     e.preventDefault()
     setLoading(true); setError('')
     try {
-      const { error: err } = await supabase.from('prayers').insert({
-        name: form.name,
-        email: form.email,
-        request: `[${form.subject}] ${form.message}`,
-        prayer_type: form.subject,
-        status: 'new',
-      })
-      if (err) throw new Error(err.message)
+      // Insert as anonymous — uses anon key with RLS policy "prayers: anyone submit"
+      const { data, error: err } = await supabase
+        .from('prayers')
+        .insert([{
+          name: form.name,
+          email: form.email,
+          request: form.subject === 'General Inquiry'
+            ? form.message
+            : `[${form.subject}] ${form.message}`,
+          prayer_type: form.subject,
+          status: 'new',
+        }])
+        .select()
+
+      if (err) {
+        console.error('Supabase error:', err)
+        throw new Error(err.message)
+      }
       setSubmitted(true)
     } catch (err) {
-      setError('Something went wrong. Please try again.')
+      console.error('Submit error:', err)
+      setError(`Failed to send: ${err.message}. Please try again or contact us directly.`)
     } finally {
       setLoading(false)
     }
   }
 
+  const contact = hp?.contact || {}
+
   return (
     <>
-      <div style={{
-        background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)',
-        padding: 'clamp(90px,14vw,130px) 5% 60px', textAlign: 'center',
-      }}>
-        <span className="section-label" style={{ color: 'var(--green-light)' }}>We'd Love to Hear From You</span>
-        <h1 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 'clamp(2rem, 5vw, 3.2rem)', marginBottom: 16 }}>
-          Contact & Prayer Requests
-        </h1>
-        <p style={{ color: 'rgba(255,255,255,0.8)', maxWidth: 520, margin: '0 auto', lineHeight: 1.8 }}>
+      <div style={{ background:'linear-gradient(135deg,var(--brand-deep) 0%,var(--brand-mid) 100%)', padding:'clamp(90px,14vw,130px) 5% 56px', textAlign:'center' }}>
+        <span className="section-label">Get In Touch</span>
+        <h1 style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:'clamp(2rem,5vw,3.2rem)', color:'white', margin:'8px 0 16px' }}>Contact Us</h1>
+        <p style={{ color:'rgba(255,255,255,0.75)', fontSize:'clamp(0.95rem,1.8vw,1.1rem)', maxWidth:520, margin:'0 auto', lineHeight:1.8 }}>
           Reach out for prayer, information, or just to say hello. Our team will respond within 24 hours.
         </p>
       </div>
 
-      <section style={{ background: 'var(--cream)', padding: '80px 5%' }}>
+      <section style={{ padding:'clamp(48px,8vw,80px) 5%' }}>
         <div className="container">
-          <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 60, alignItems: 'start' }}>
+          <div className="contact-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1.5fr', gap:60, alignItems:'start' }}>
 
-            {/* Info Panel */}
+            {/* Info */}
             <div>
-              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--green-deep)', fontSize: '1.6rem', marginBottom: 28 }}>Find Us</h2>
+              <h2 style={{ fontFamily:'var(--font-display)', color:'var(--brand-deep)', fontSize:'1.5rem', marginBottom:24 }}>We'd Love to Hear From You</h2>
               {[
-                { icon: '📍', title: 'Address', detail: '131 Ahoada Road \n Omoku,Rivers State,Nigeria' },
-                { icon: '📞', title: 'Phone', detail: '+234 nil' },
-                { icon: '✉️', title: 'Email', detail: 'ccgmworldwide@gmail.com' },
-                { icon: '🕐', title: 'Office Hours', detail: 'Mon–Fri: 9 AM – 5 PM\nWeekends: Church Hours' },
-              ].map(({ icon, title, detail }) => (
-                <div key={title} style={{
-                  display: 'flex', gap: 16, marginBottom: 26,
-                  padding: '18px 20px', background: 'white', borderRadius: 12, boxShadow: 'var(--shadow-sm)',
-                }}>
-                  <div style={{
-                    width: 44, height: 44, background: 'var(--green-pale)', borderRadius: 10,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0,
-                  }}>{icon}</div>
+                ['📍', 'Address', contact.address || 'Contact us for our location'],
+                ['📞', 'Phone',   contact.phone   || 'Contact us for our phone number'],
+                ['✉️', 'Email',   contact.email   || 'info@ccgworld.org'],
+              ].map(([icon,label,val]) => (
+                <div key={label} style={{ display:'flex', gap:16, marginBottom:24 }}>
+                  <div style={{ width:44, height:44, borderRadius:12, background:'var(--brand-pale)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem', flexShrink:0 }}>{icon}</div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--green-deep)', marginBottom: 4, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{title}</div>
-                    <div style={{ fontSize: '0.92rem', color: 'var(--text-mid)', whiteSpace: 'pre-line', lineHeight: 1.6 }}>{detail}</div>
+                    <div style={{ fontWeight:700, color:'var(--brand-deep)', marginBottom:2 }}>{label}</div>
+                    <div style={{ color:'var(--text-mid)', fontSize:'0.9rem' }}>{val}</div>
                   </div>
                 </div>
               ))}
-
-              <div style={{ background: 'var(--green-pale)', borderRadius: 14, padding: '20px 22px', marginTop: 10 }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>🙏</div>
-                <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--green-deep)', marginBottom: 6 }}>24/7 Prayer Line</h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-mid)', lineHeight: 1.7 }}>
-                  Our prayer team is committed to standing with you in faith at any hour.
-                </p>
-                <div style={{ fontWeight: 700, color: 'var(--green-mid)', marginTop: 8 }}>+234 nil</div>
+              <div style={{ background:'var(--brand-pale)', borderRadius:16, padding:'20px 22px', marginTop:8 }}>
+                <div style={{ fontWeight:700, color:'var(--brand-deep)', marginBottom:6 }}>🙏 Prayer Line</div>
+                <div style={{ color:'var(--text-mid)', fontSize:'0.88rem', lineHeight:1.7 }}>Our prayer team is committed to standing with you in faith at any hour.</div>
+                {contact.phone && <div style={{ color:'var(--brand-light)', fontWeight:700, marginTop:8 }}>{contact.phone}</div>}
               </div>
             </div>
 
             {/* Form */}
-            <div style={{ background: 'white', borderRadius: 18, padding: '40px', boxShadow: 'var(--shadow-md)' }}>
+            <div style={{ background:'white', borderRadius:20, padding:'clamp(24px,4vw,40px)', boxShadow:'var(--shadow-md)' }}>
               {submitted ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <div style={{ fontSize: '3.5rem', marginBottom: 16 }}>🙏</div>
-                  <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--green-deep)', fontSize: '1.6rem', marginBottom: 12 }}>
-                    Thank You, {form.name}!
-                  </h3>
-                  <p style={{ color: 'var(--text-mid)', lineHeight: 1.8, maxWidth: 360, margin: '0 auto 24px' }}>
-                    Your message has been received. Our team will be in prayer for you and will reach out shortly.
-                  </p>
-                  <button
-                    onClick={() => { setSubmitted(false); setForm({ name: '', email: '', phone: '', subject: 'Prayer Request', message: '' }) }}
-                    className="btn btn-green"
-                  >
-                    Send Another Message
+                <div style={{ textAlign:'center', padding:'40px 20px' }}>
+                  <div style={{ fontSize:'3.5rem', marginBottom:16 }}>🙏</div>
+                  <h3 style={{ fontFamily:'var(--font-display)', color:'var(--brand-deep)', fontSize:'1.6rem', marginBottom:12 }}>Thank You, {form.name.split(' ')[0]}!</h3>
+                  <p style={{ color:'var(--text-mid)', lineHeight:1.8, marginBottom:28 }}>Your message has been received. Our team will be in prayer for you and will reach out shortly.</p>
+                  <button onClick={()=>{ setSubmitted(false); setForm({ name:'', email:'', phone:'', subject:'Prayer Request', message:'' }) }} className="btn btn-blue" style={{ padding:'12px 32px' }}>
+                    SEND ANOTHER MESSAGE
                   </button>
                 </div>
               ) : (
-                <>
-                  <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--green-deep)', fontSize: '1.5rem', marginBottom: 28 }}>
-                    Send a Message
-                  </h2>
-                  <form onSubmit={handleSubmit}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                      <div className="form-group">
-                        <label>Full Name *</label>
-                        <input name="name" required value={form.name} onChange={handleChange} placeholder="Your full name" />
-                      </div>
-                      <div className="form-group">
-                        <label>Email Address *</label>
-                        <input name="email" type="email" required value={form.email} onChange={handleChange} placeholder="your@email.com" />
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                      <div className="form-group">
-                        <label>Phone Number</label>
-                        <input name="phone" value={form.phone} onChange={handleChange} placeholder="Optional" />
-                      </div>
-                      <div className="form-group">
-                        <label>Subject *</label>
-                        <select name="subject" value={form.subject} onChange={handleChange}>
-                          <option>Prayer Request</option>
-                          <option>General Inquiry</option>
-                          <option>New Member</option>
-                          <option>Pastoral Counseling</option>
-                          <option>Volunteering</option>
-                          <option>Other</option>
-                        </select>
-                      </div>
-                    </div>
+                <form onSubmit={handleSubmit}>
+                  <h3 style={{ fontFamily:'var(--font-display)', color:'var(--brand-deep)', fontSize:'1.3rem', marginBottom:24 }}>Send Us a Message</h3>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                    <div className="form-group"><label>Full Name *</label><input name="name" value={form.name} onChange={handleChange} required placeholder="Your full name" /></div>
+                    <div className="form-group"><label>Email *</label><input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="your@email.com" /></div>
+                    <div className="form-group"><label>Phone</label><input name="phone" value={form.phone} onChange={handleChange} placeholder="+234 800 000 0000" /></div>
                     <div className="form-group">
-                      <label>Your Message *</label>
-                      <textarea name="message" required value={form.message} onChange={handleChange} placeholder="Share what's on your heart..." style={{ minHeight: 140 }} />
+                      <label>Subject</label>
+                      <select name="subject" value={form.subject} onChange={handleChange} style={{ padding:'10px 14px', borderRadius:8, border:'1.5px solid #e2e8f0', width:'100%', fontFamily:'var(--font-body)', fontSize:'0.9rem', background:'white' }}>
+                        {['Prayer Request','General Inquiry','Event Information','Counseling','Partnership','Volunteer'].map(s=><option key={s} value={s}>{s}</option>)}
+                      </select>
                     </div>
-                    {error && <div style={{ background:'#fff5f5', border:'1px solid #fecaca', borderRadius:8, padding:'10px 14px', color:'#dc2626', fontSize:'0.85rem', marginBottom:12 }}>❌ {error}</div>}
-                    <button type="submit" className="btn btn-green" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
-                      {loading ? '⏳ Sending...' : '✉️ Send Message'}
-                    </button>
-                  </form>
-                </>
+                    <div className="form-group" style={{ gridColumn:'1/-1' }}>
+                      <label>Message *</label>
+                      <textarea name="message" value={form.message} onChange={handleChange} required rows={5} placeholder="How can we help or pray for you?" style={{ resize:'vertical' }} />
+                    </div>
+                  </div>
+                  {error && (
+                    <div style={{ background:'#fff5f5', border:'1px solid #fecaca', borderRadius:8, padding:'10px 14px', color:'#dc2626', fontSize:'0.85rem', marginBottom:16 }}>
+                      ❌ {error}
+                    </div>
+                  )}
+                  <button type="submit" className="btn btn-blue" style={{ width:'100%', justifyContent:'center', padding:'14px' }} disabled={loading}>
+                    {loading ? '⏳ Sending...' : '✉️ Send Message'}
+                  </button>
+                </form>
               )}
             </div>
           </div>
         </div>
       </section>
+
       <style>{`
-        @media(max-width:768px){
-          .contact-grid{grid-template-columns:1fr!important;gap:32px!important;}
-        }
+        @media(max-width:768px){ .contact-grid{grid-template-columns:1fr!important;gap:32px!important;} }
       `}</style>
     </>
   )
