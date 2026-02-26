@@ -21,15 +21,18 @@ function parseEventDate(dateStr, timeStr) {
 }
 
 function Countdown({ target }) {
-  const [diff, setDiff] = useState(0)
+  const getT = () => target instanceof Date ? target : new Date(target)
+  const getDiff = () => Math.max(0, getT() - Date.now())
+  const [diff, setDiff] = useState(() => getDiff())
 
   useEffect(() => {
-    const t = target instanceof Date ? target : new Date(target)
-    const calc = () => setDiff(Math.max(0, t - Date.now()))
-    calc()
-    const id = setInterval(calc, 1000)
+    setDiff(getDiff())
+    const id = setInterval(() => setDiff(getDiff()), 1000)
     return () => clearInterval(id)
   }, [target])
+
+  // If NaN (bad date), show nothing
+  if (isNaN(getT().getTime())) return null
 
   const totalSecs = Math.floor(diff / 1000)
   const d = Math.floor(totalSecs / 86400)
@@ -37,7 +40,7 @@ function Countdown({ target }) {
   const m = Math.floor((totalSecs % 3600) / 60)
   const s = totalSecs % 60
 
-  if (diff === 0) return <span style={{color:'var(--gold)',fontWeight:900}}>🔴 Starting now!</span>
+  if (diff <= 0) return <span style={{color:'var(--gold)',fontWeight:900}}>🔴 Starting now!</span>
 
   return (
     <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
