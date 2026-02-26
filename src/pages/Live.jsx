@@ -247,18 +247,22 @@ export default function Live() {
                 const target = new Date(`${ev.date}${ev.time?' '+ev.time:''}`)
                 const isPast = target < new Date()
                 return (
-                  <div key={i} style={{background:'white',borderRadius:16,padding:'22px 24px',boxShadow:'var(--shadow-sm)',border:'1.5px solid #e2e8f0',display:'flex',gap:20,alignItems:'flex-start',flexWrap:'wrap'}}>
-                    <div style={{fontSize:'2.5rem',flexShrink:0}}>{ev.icon||'🎊'}</div>
-                    <div style={{flex:1,minWidth:200}}>
-                      <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1.15rem',color:'var(--brand-deep)',marginBottom:4}}>{ev.title}</div>
-                      <div style={{fontSize:'0.82rem',color:'var(--brand-light)',fontWeight:700,marginBottom:ev.description?8:0}}>
-                        📅 {new Date(ev.date).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}{ev.time&&` · 🕐 ${ev.time}`}
+                  <div key={i} style={{background:'white',borderRadius:16,padding:'22px 24px',boxShadow:'var(--shadow-sm)',border:'1.5px solid #e2e8f0'}}>
+                    {/* Header row */}
+                    <div style={{display:'flex',gap:14,alignItems:'flex-start',marginBottom:ev.broadcast!==false&&!isPast?20:0}}>
+                      <div style={{fontSize:'2.2rem',flexShrink:0,lineHeight:1}}>{ev.icon||'🎊'}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1.15rem',color:'var(--brand-deep)',marginBottom:4}}>{ev.title}</div>
+                        <div style={{fontSize:'0.82rem',color:'var(--brand-light)',fontWeight:700,marginBottom:ev.description?8:0}}>
+                          📅 {new Date(ev.date).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}{ev.time&&` · 🕐 ${ev.time}`}
+                        </div>
+                        {ev.description&&<div style={{fontSize:'0.88rem',color:'var(--text-mid)',lineHeight:1.7}}>{ev.description}</div>}
                       </div>
-                      {ev.description&&<div style={{fontSize:'0.88rem',color:'var(--text-mid)',lineHeight:1.65}}>{ev.description}</div>}
                     </div>
+                    {/* Countdown — always full width below */}
                     {ev.broadcast!==false&&!isPast&&(
-                      <div style={{textAlign:'center',flexShrink:0}}>
-                        <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:8}}>Starts in</div>
+                      <div style={{borderTop:'1px solid #f1f5f9',paddingTop:16,marginTop:4}}>
+                        <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10,textAlign:'center'}}>⏳ Starts In</div>
                         <Countdown target={target} />
                       </div>
                     )}
