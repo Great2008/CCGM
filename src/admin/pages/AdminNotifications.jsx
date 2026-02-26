@@ -236,7 +236,7 @@ export default function AdminNotifications() {
                     To actually deliver push notifications, you need to deploy the <code>send-push</code> Edge Function to Supabase. Here's how:
                   </div>
                   <div style={{background:'#1e293b',borderRadius:10,padding:'14px 16px',fontSize:'0.78rem',color:'#e2e8f0',fontFamily:'monospace',lineHeight:1.9,overflowX:'auto'}}>
-                    <div style={{color:'#94a3b8',marginBottom:4'}}># Install Supabase CLI</div>
+                    <div style={{color:'#94a3b8',marginBottom:4}}># Install Supabase CLI</div>
                     <div>npm install -g supabase</div>
                     <div style={{marginTop:8,color:'#94a3b8'}}># Login and link your project</div>
                     <div>supabase login</div>
