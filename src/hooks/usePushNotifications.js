@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import supabase from '../lib/supabase'
 
-// Your VAPID public key — also set this in Vercel env as VITE_VAPID_PUBLIC_KEY
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ||
   'EH0Ewi8UZP4Jjflxsdm0363_I3SalbXHht3cruC-0GDZKwdkAIxehmW1NcwKfqkh-o5JR957slYk3dyPQF87Pw'
 
@@ -24,13 +23,12 @@ export function usePushNotifications(user) {
     if (ok) setPermission(Notification.permission)
   }, [])
 
-  // Check if already subscribed
   useEffect(() => {
-    if (!supported || !user) return
+    if (!supported) return
     navigator.serviceWorker.ready.then(reg =>
       reg.pushManager.getSubscription().then(sub => setSubscribed(!!sub))
     )
-  }, [supported, user])
+  }, [supported])
 
   const subscribe = async () => {
     if (!supported) return { error: 'Push notifications not supported in this browser' }
@@ -49,22 +47,33 @@ export function usePushNotifications(user) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       })
 
-      // Save subscription to Supabase
       const subJson = sub.toJSON()
-      const { error } = await supabase.from('push_subscriptions').upsert({
+      console.log('Push subscription created:', subJson.endpoint.substring(0, 60))
+
+      // Delete any existing row with same endpoint first, then insert fresh
+      await supabase.from('push_subscriptions').delete().eq('endpoint', subJson.endpoint)
+
+      const { data, error } = await supabase.from('push_subscriptions').insert({
         user_id: user?.id || null,
         endpoint: subJson.endpoint,
         p256dh: subJson.keys?.p256dh,
         auth: subJson.keys?.auth,
         user_agent: navigator.userAgent.substring(0, 200),
         subscribed_at: new Date().toISOString(),
-      }, { onConflict: 'endpoint' })
+      }).select()
 
-      if (error) throw error
+      console.log('Supabase insert result:', { data, error })
+
+      if (error) {
+        console.error('Push subscription save failed:', error)
+        throw new Error(error.message + ' (code: ' + error.code + ')')
+      }
+
       setSubscribed(true)
       setLoading(false)
       return { success: true }
     } catch(err) {
+      console.error('Subscribe error:', err)
       setLoading(false)
       return { error: err.message }
     }
