@@ -14,6 +14,7 @@ import Hymnal     from './pages/Hymnal'
 import Devotional from './pages/Devotional'
 import Timeline   from './pages/Timeline'
 import Live       from './pages/Live'
+import SabbathSchool from './pages/SabbathSchool'
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/devotional" element={<Devotional />} />
             <Route path="/timeline"   element={<Timeline />} />
             <Route path="/live"       element={<Live />} />
+            <Route path="/sabbath-school" element={<SabbathSchool />} />
           </Routes>
         </main>
         <Footer />

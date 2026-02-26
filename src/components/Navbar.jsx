@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to:'/about',    label:'About' },
   { to:'/blog',     label:'Blog' },
   { to:'/gallery',  label:'Gallery' },
+  { to:'/sabbath-school', label:'📖 Sabbath' },
   { to:'/timeline', label:'🌐 Timeline' },
   { to:'/contact',  label:'Contact' },
 ]

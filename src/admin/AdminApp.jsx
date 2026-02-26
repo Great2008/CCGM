@@ -12,6 +12,7 @@ import AdminMembers   from './pages/AdminMembers'
 import AdminTimeline  from './pages/AdminTimeline'
 import AdminHymnal    from './pages/AdminHymnal'
 import AdminLive     from './pages/AdminLive'
+import AdminSabbath  from './pages/AdminSabbath'
 
 export const AdminContext = createContext(null)
 export const useAdmin = () => useContext(AdminContext)
@@ -28,8 +29,9 @@ const NAV = [
   ['timeline',  '💬', 'Timeline'],
   ['members',   '👥', 'Members'],
   ['live',      '📡', 'Live Stream'],
+  ['sabbath',    '📖', 'Sabbath School'],
 ]
-const PAGES = { dashboard:AdminDashboard, sermons:AdminSermons, events:AdminEvents, blog:AdminBlog, gallery:AdminGallery, hymnal:AdminHymnal, homepage:AdminHomepage, prayer:AdminPrayer, timeline:AdminTimeline, members:AdminMembers, live:AdminLive }
+const PAGES = { dashboard:AdminDashboard, sermons:AdminSermons, events:AdminEvents, blog:AdminBlog, gallery:AdminGallery, hymnal:AdminHymnal, homepage:AdminHomepage, prayer:AdminPrayer, timeline:AdminTimeline, members:AdminMembers, live:AdminLive, sabbath:AdminSabbath }
 
 export default function AdminApp() {
   const [authed, setAuthed] = useState(false)
