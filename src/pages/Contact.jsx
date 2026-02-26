@@ -1,21 +1,29 @@
 import { useState } from 'react'
+import supabase from '../lib/supabase'
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: 'Prayer Request', message: '' })
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setLoading(true); setError('')
     try {
-      // Replace with real API call: await fetch('/api/contact', { method: 'POST', body: JSON.stringify(form) })
-      await new Promise(r => setTimeout(r, 1200))
+      const { error: err } = await supabase.from('prayers').insert({
+        name: form.name,
+        email: form.email,
+        request: `[${form.subject}] ${form.message}`,
+        prayer_type: form.subject,
+        status: 'new',
+      })
+      if (err) throw new Error(err.message)
       setSubmitted(true)
     } catch (err) {
-      alert('Something went wrong. Please try again.')
+      setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -129,6 +137,7 @@ export default function Contact() {
                       <label>Your Message *</label>
                       <textarea name="message" required value={form.message} onChange={handleChange} placeholder="Share what's on your heart..." style={{ minHeight: 140 }} />
                     </div>
+                    {error && <div style={{ background:'#fff5f5', border:'1px solid #fecaca', borderRadius:8, padding:'10px 14px', color:'#dc2626', fontSize:'0.85rem', marginBottom:12 }}>❌ {error}</div>}
                     <button type="submit" className="btn btn-green" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
                       {loading ? '⏳ Sending...' : '✉️ Send Message'}
                     </button>
