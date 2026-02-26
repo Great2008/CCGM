@@ -17,14 +17,14 @@ export default function AdminPrayer() {
 
   const load = async () => {
     setLoading(true)
-    const { data } = await supabase.from('prayer_requests').select('*').order('submitted_at', { ascending: false })
+    const { data } = await supabase.from('prayers').select('*').order('submitted_at', { ascending: false })
     setItems(data||[]); setLoading(false)
   }
   useEffect(() => { load() }, [])
 
   const updateStatus = async (id, status) => {
     setSaving(true)
-    await supabase.from('prayer_requests').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    await supabase.from('prayers').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
     showToast('Status updated'); load()
     if (selected?.id===id) setSelected(s=>({...s,status}))
     setSaving(false)
@@ -34,13 +34,13 @@ export default function AdminPrayer() {
     if (!note.trim()) return; setSaving(true)
     const item = items.find(i=>i.id===id)
     const notes = [...(item?.notes||[]), { text:note.trim(), date:new Date().toLocaleDateString(), by:'Admin' }]
-    await supabase.from('prayer_requests').update({ notes, updated_at:new Date().toISOString() }).eq('id', id)
+    await supabase.from('prayers').update({ notes, updated_at:new Date().toISOString() }).eq('id', id)
     showToast('Note added'); setNote(''); load()
     setSaving(false)
   }
 
   const deleteReq = async id => {
-    await supabase.from('prayer_requests').delete().eq('id', id)
+    await supabase.from('prayers').delete().eq('id', id)
     setItems(i=>i.filter(x=>x.id!==id)); setSelected(null); showToast('Deleted')
   }
 
