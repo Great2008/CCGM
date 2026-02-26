@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar     from './components/Navbar'
 import Footer     from './components/Footer'
 import Home       from './pages/Home'
@@ -14,31 +14,42 @@ import Hymnal     from './pages/Hymnal'
 import Devotional from './pages/Devotional'
 import Timeline   from './pages/Timeline'
 import Live       from './pages/Live'
+import PushPrompt from './components/PushPrompt'
 import SabbathSchool from './pages/SabbathSchool'
+
+function AppInner() {
+  const { user } = useAuth()
+  return (
+    <>
+      <Navbar />
+      <main>
+        <Routes>
+          <Route path="/"           element={<Home />} />
+          <Route path="/sermons"    element={<Sermons />} />
+          <Route path="/events"     element={<Events />} />
+          <Route path="/about"      element={<About />} />
+          <Route path="/contact"    element={<Contact />} />
+          <Route path="/gallery"    element={<Gallery />} />
+          <Route path="/blog"       element={<Blog />} />
+          <Route path="/bible"      element={<Bible />} />
+          <Route path="/hymnal"     element={<Hymnal />} />
+          <Route path="/devotional" element={<Devotional />} />
+          <Route path="/timeline"   element={<Timeline />} />
+          <Route path="/live"       element={<Live />} />
+          <Route path="/sabbath-school" element={<SabbathSchool />} />
+        </Routes>
+      </main>
+      <Footer />
+      <PushPrompt user={user} />
+    </>
+  )
+}
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Navbar />
-        <main>
-          <Routes>
-            <Route path="/"           element={<Home />} />
-            <Route path="/sermons"    element={<Sermons />} />
-            <Route path="/events"     element={<Events />} />
-            <Route path="/about"      element={<About />} />
-            <Route path="/contact"    element={<Contact />} />
-            <Route path="/gallery"    element={<Gallery />} />
-            <Route path="/blog"       element={<Blog />} />
-            <Route path="/bible"      element={<Bible />} />
-            <Route path="/hymnal"     element={<Hymnal />} />
-            <Route path="/devotional" element={<Devotional />} />
-            <Route path="/timeline"   element={<Timeline />} />
-            <Route path="/live"       element={<Live />} />
-            <Route path="/sabbath-school" element={<SabbathSchool />} />
-          </Routes>
-        </main>
-        <Footer />
+        <AppInner />
       </BrowserRouter>
     </AuthProvider>
   )

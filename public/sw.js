@@ -1,28 +1,17 @@
-// CCOGM Service Worker v2 — Full Offline PWA
-const CACHE = 'ccogm-v2'
+// CCG World Service Worker v3 — Full Offline PWA + Push Notifications
+const CACHE = 'ccgworld-v3'
 
-// App shell + preloaded assets
 const PRECACHE = [
-  '/',
-  '/bible',
-  '/hymnal',
-  '/devotional',
-  '/sermons',
-  '/events',
-  '/about',
-  '/contact',
-  '/gallery',
-  '/blog',
+  '/', '/bible', '/hymnal', '/devotional',
+  '/sermons', '/events', '/about', '/contact',
+  '/gallery', '/blog', '/live', '/sabbath-school', '/timeline',
 ]
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(cache => {
-      // Precache app shell (ignore individual failures)
-      return Promise.allSettled(PRECACHE.map(url =>
-        cache.add(url).catch(() => null)
-      ))
-    })
+    caches.open(CACHE).then(cache =>
+      Promise.allSettled(PRECACHE.map(url => cache.add(url).catch(() => null)))
+    )
   )
   self.skipWaiting()
 })
@@ -39,19 +28,11 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const { request } = e
   const url = new URL(request.url)
-
-  // Skip non-GET and chrome-extension requests
   if (request.method !== 'GET' || url.protocol === 'chrome-extension:') return
-
-  // API calls — network first, no offline fallback needed (data is preloaded in JS)
   if (url.pathname.startsWith('/api/')) {
-    e.respondWith(
-      fetch(request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
-    )
+    e.respondWith(fetch(request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })))
     return
   }
-
-  // Static assets (JS, CSS, fonts, images) — cache first
   if (request.destination === 'script' || request.destination === 'style' ||
       request.destination === 'font' || request.destination === 'image') {
     e.respondWith(
@@ -68,8 +49,6 @@ self.addEventListener('fetch', e => {
     )
     return
   }
-
-  // Navigation — serve cached index.html for SPA routing (offline support)
   if (request.mode === 'navigate') {
     e.respondWith(
       fetch(request).catch(() =>
@@ -78,4 +57,57 @@ self.addEventListener('fetch', e => {
     )
     return
   }
+})
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────────
+self.addEventListener('push', e => {
+  if (!e.data) return
+  let payload
+  try { payload = e.data.json() }
+  catch { payload = { title: 'CCG World', body: e.data.text() } }
+
+  const options = {
+    body: payload.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-96.png',
+    image: payload.image || undefined,
+    tag: payload.tag || 'ccgworld-notification',
+    renotify: true,
+    requireInteraction: payload.requireInteraction || false,
+    data: { url: payload.url || '/' },
+    actions: payload.actions || [],
+    vibrate: [200, 100, 200],
+  }
+
+  e.waitUntil(
+    self.registration.showNotification(payload.title || 'CCG World', options)
+  )
+})
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  const url = e.notification.data?.url || '/'
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Focus existing window if open
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      // Otherwise open new window
+      if (clients.openWindow) return clients.openWindow(url)
+    })
+  )
+})
+
+self.addEventListener('pushsubscriptionchange', e => {
+  // Re-subscribe if subscription expires
+  e.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: e.oldSubscription?.options?.applicationServerKey
+    })
+  )
 })

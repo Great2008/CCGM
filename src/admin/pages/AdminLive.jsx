@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAdmin } from '../AdminApp'
 import { getContent, setContent } from '../supabase'
+import supabaseAdmin from '../../lib/supabaseAdmin'
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const ICONS = ['📡','🌟','🙏','📖','⛪','🔥','✨','🤝','🎵','✝','🎤','🏛','🎊','📢']
@@ -29,23 +30,48 @@ export default function AdminLive() {
   const { showToast } = useAdmin()
   const [data, setData]     = useState(DEFAULT)
   const [loading, setLoading] = useState(true)
+  const [savedLive, setSavedLive] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tab, setTab]       = useState('stream')
 
   useEffect(() => {
     getContent('live').then(d => {
-      if (d) setData(prev => ({
+      if (d) { setSavedLive(!!d.isLive); setData(prev => ({
         ...prev, ...d,
         schedule: d.schedule || prev.schedule,
         specialEvents: d.specialEvents || [],
-      }))
+      }))}
       setLoading(false)
     })
   }, [])
 
   const save = async () => {
     setSaving(true)
-    try { await setContent('live', data); showToast('Live settings saved!') }
+    const wasLive = savedLive
+    try {
+      await setContent('live', data)
+      showToast('Live settings saved!')
+      // Auto-send push notification when going live
+      if (data.isLive && !wasLive) {
+        try {
+          const { data: subs } = await supabaseAdmin.from('push_subscriptions').select('*')
+          if (subs?.length) {
+            await supabaseAdmin.functions.invoke('send-push', {
+              body: {
+                subscriptions: subs,
+                payload: {
+                  title: '🔴 CCG World is Live!',
+                  body: data.liveTitle || 'We are live now — join us for today\'s service!',
+                  url: '/live', tag: 'live', requireInteraction: true,
+                }
+              }
+            })
+            showToast(\`Live notification sent to \${subs.length} subscribers!\`)
+          }
+        } catch(e) { console.log('Push skipped:', e.message) }
+      }
+      setSavedLive(data.isLive)
+    }
     catch(e) { showToast(e.message, 'error') }
     setSaving(false)
   }
