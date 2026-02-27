@@ -242,8 +242,8 @@ export default function AdminNotifications() {
                     <div>supabase login</div>
                     <div>supabase link --project-ref YOUR_PROJECT_REF</div>
                     <div style={{marginTop:8,color:'#94a3b8'}}># Set VAPID secrets</div>
-                    <div>supabase secrets set VAPID_PUBLIC_KEY=EH0Ewi8UZP4Jjflxsdm0363_I3SalbXHht3cruC-0GDZKwdkAIxehmW1NcwKfqkh-o5JR957slYk3dyPQF87Pw</div>
-                    <div>supabase secrets set VAPID_PRIVATE_KEY=2SsHZACMXoZltTXMCn6pIfqOSUfee7JWJN3cj0BfOz8</div>
+                    <div>supabase secrets set VAPID_PUBLIC_KEY=BOwHcCnXaOlM2krFyYhnW0_dAjdIt8067WjNuX1Tsa7uew6tblhFMTuqCEH7XU8BCdleHzMIhPLxEEhy02hs6zA</div>
+                    <div>supabase secrets set VAPID_PRIVATE_KEY=lrl9Qzg_NKEUUfEHQbHJGEIq1CLK-D8mAovsFRvL5ZA</div>
                     <div>supabase secrets set VAPID_SUBJECT=mailto:info@ccgworld.org</div>
                     <div style={{marginTop:8,color:'#94a3b8'}}># Deploy the function</div>
                     <div>supabase functions deploy send-push</div>
