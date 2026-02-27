@@ -42,13 +42,21 @@ export function usePushNotifications(user) {
       }
 
       const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      })
+      alert('SW ready. Attempting push subscribe...')
+      
+      let sub
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        })
+        alert('Push subscribed! Endpoint: ' + sub.endpoint.substring(0, 60))
+      } catch(pushErr) {
+        alert('pushManager.subscribe FAILED: ' + pushErr.name + ' — ' + pushErr.message)
+        throw pushErr
+      }
 
       const subJson = sub.toJSON()
-      console.log('Push subscription created:', subJson.endpoint.substring(0, 60))
 
       // Delete any existing row with same endpoint first, then insert fresh
       await supabase.from('push_subscriptions').delete().eq('endpoint', subJson.endpoint)
@@ -62,12 +70,11 @@ export function usePushNotifications(user) {
         subscribed_at: new Date().toISOString(),
       }).select()
 
-      console.log('Supabase insert result:', { data, error })
-
       if (error) {
-        console.error('Push subscription save failed:', error)
-        throw new Error(error.message + ' (code: ' + error.code + ')')
+        alert('Supabase insert FAILED: ' + error.message + ' code:' + error.code)
+        throw new Error(error.message)
       }
+      alert('Saved to Supabase! Row: ' + JSON.stringify(data?.[0]?.id))
 
       setSubscribed(true)
       setLoading(false)

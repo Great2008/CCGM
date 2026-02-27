@@ -202,7 +202,7 @@ export default function Live() {
             {isLive ? title : 'CCG World Live'}
           </h1>
           {description && isLive && (
-            <p style={{color:'rgba(255,255,255,0.7)',fontSize:'1rem',margin:'0 0 24px',lineHeight:1.7,maxWidth:560,margin:'0 auto 24px'}}>{description}</p>
+            <p style={{color:'rgba(255,255,255,0.7)',fontSize:'1rem',margin:'0 auto 24px',lineHeight:1.7,maxWidth:560}}>{description}</p>
           )}
 
           {/* Tab switcher — only if both platforms active */}
