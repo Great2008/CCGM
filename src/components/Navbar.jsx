@@ -3,6 +3,9 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 
+const BELL_SEEN_KEY = 'ccg-notif-last-seen'
+import NotificationCenter from './NotificationCenter'
+
 const NAV_LINKS = [
   { to:'/',         label:'Home' },
   { to:'/sermons',  label:'Sermons' },
@@ -22,10 +25,11 @@ const OFFLINE_LINKS = [
 ]
 
 export default function Navbar() {
-  const [scrolled, setScrolled]     = useState(false)
-  const [menuOpen, setMenuOpen]     = useState(false)
+  const [scrolled, setScrolled]       = useState(false)
+  const [menuOpen, setMenuOpen]       = useState(false)
   const [offlineOpen, setOfflineOpen] = useState(false)
-  const [isLive, setIsLive]         = useState(false)
+  const [isLive, setIsLive]           = useState(false)
+  const [unread, setUnread]           = useState(0)
   const { pathname } = useLocation()
   const { user, profile, signOut } = useAuth()
 
@@ -45,6 +49,20 @@ export default function Navbar() {
         payload => setIsLive(!!payload.new.value?.isLive))
       .subscribe()
     return () => supabase.removeChannel(sub)
+  }, [])
+
+  // Unread notification count
+  useEffect(() => {
+    const lastSeen = localStorage.getItem(BELL_SEEN_KEY)
+    const query = supabase.from('notification_logs').select('*', { count: 'exact', head: true })
+    if (lastSeen) query.gt('sent_at', lastSeen)
+    query.then(({ count }) => setUnread(count || 0))
+
+    const ch = supabase.channel('nav-notif')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notification_logs' },
+        () => setUnread(n => n + 1))
+      .subscribe()
+    return () => supabase.removeChannel(ch)
   }, [])
 
   const isHome = pathname === '/'
@@ -126,6 +144,25 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* Notification Bell */}
+            <NotificationCenter user={user} />
+
+            {/* Notifications bell */}
+            <Link to="/notifications"
+              onClick={() => { localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString()); setUnread(0) }}
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', marginLeft: 4, flexShrink: 0, textDecoration: 'none', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.16)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+              title="Notifications"
+            >
+              <span style={{ fontSize: '1rem' }}>🔔</span>
+              {unread > 0 && (
+                <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: '#ef4444', color: 'white', fontSize: '0.62rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '2px solid rgba(15,31,61,0.97)' }}>
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
+            </Link>
+
             {/* Auth */}
             {user ? (
               <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:6}}>
@@ -186,6 +223,12 @@ export default function Navbar() {
           ))}
           {/* Live in mobile */}
           <LiveLink mobile />
+          <Link to="/notifications"
+            onClick={() => { localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString()); setUnread(0) }}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 22px', color: pathname === '/notifications' ? 'var(--gold)' : 'rgba(255,255,255,0.82)', fontWeight: pathname === '/notifications' ? 700 : 400, fontSize: '0.95rem', textDecoration: 'none', borderLeft: pathname === '/notifications' ? '3px solid var(--gold)' : '3px solid transparent' }}>
+            <span>🔔 Notifications</span>
+            {unread > 0 && <span style={{ background: '#ef4444', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: '0.7rem', fontWeight: 900 }}>{unread}</span>}
+          </Link>
           <div style={{margin:'12px 20px 6px',fontSize:'0.65rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)'}}>Offline Resources</div>
           {OFFLINE_LINKS.map(({to,label,sub})=>(
             <Link key={to} to={to} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 22px',color:'rgba(255,255,255,0.75)',fontSize:'0.9rem',textDecoration:'none'}}>

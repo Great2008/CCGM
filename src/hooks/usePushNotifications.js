@@ -42,44 +42,41 @@ export function usePushNotifications(user) {
       }
 
       const reg = await navigator.serviceWorker.ready
-      alert('SW ready. Attempting push subscribe...')
-      
+
       let sub
       try {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         })
-        alert('Push subscribed! Endpoint: ' + sub.endpoint.substring(0, 60))
-      } catch(pushErr) {
-        alert('pushManager.subscribe FAILED: ' + pushErr.name + ' — ' + pushErr.message)
-        throw pushErr
+      } catch (pushErr) {
+        setLoading(false)
+        return { error: `Subscription failed: ${pushErr.message}` }
       }
 
       const subJson = sub.toJSON()
 
-      // Delete any existing row with same endpoint first, then insert fresh
+      // Upsert: delete old row for this endpoint, insert fresh
       await supabase.from('push_subscriptions').delete().eq('endpoint', subJson.endpoint)
 
-      const { data, error } = await supabase.from('push_subscriptions').insert({
-        user_id: user?.id || null,
-        endpoint: subJson.endpoint,
-        p256dh: subJson.keys?.p256dh,
-        auth: subJson.keys?.auth,
-        user_agent: navigator.userAgent.substring(0, 200),
+      const { error } = await supabase.from('push_subscriptions').insert({
+        user_id:      user?.id || null,
+        endpoint:     subJson.endpoint,
+        p256dh:       subJson.keys?.p256dh,
+        auth:         subJson.keys?.auth,
+        user_agent:   navigator.userAgent.substring(0, 200),
         subscribed_at: new Date().toISOString(),
-      }).select()
+      })
 
       if (error) {
-        alert('Supabase insert FAILED: ' + error.message + ' code:' + error.code)
-        throw new Error(error.message)
+        setLoading(false)
+        return { error: `Could not save subscription: ${error.message}` }
       }
-      alert('Saved to Supabase! Row: ' + JSON.stringify(data?.[0]?.id))
 
       setSubscribed(true)
       setLoading(false)
       return { success: true }
-    } catch(err) {
+    } catch (err) {
       console.error('Subscribe error:', err)
       setLoading(false)
       return { error: err.message }
@@ -96,7 +93,9 @@ export function usePushNotifications(user) {
         await sub.unsubscribe()
       }
       setSubscribed(false)
-    } catch(err) { console.error(err) }
+    } catch (err) {
+      console.error('Unsubscribe error:', err)
+    }
     setLoading(false)
   }
 
