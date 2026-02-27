@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 
 const BELL_SEEN_KEY = 'ccg-notif-last-seen'
-import NotificationCenter from './NotificationCenter'
 
 const NAV_LINKS = [
   { to:'/',         label:'Home' },
