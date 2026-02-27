@@ -143,9 +143,6 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Notification Bell */}
-            <NotificationCenter user={user} />
-
             {/* Notifications bell */}
             <Link to="/notifications"
               onClick={() => { localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString()); setUnread(0) }}
