@@ -209,7 +209,7 @@ function ProfileModal({ profile, onClose, onUpdate }) {
 
 /* ── Main Timeline Page ── */
 export default function Timeline() {
-  const { user, profile, loading: authLoading, signOut, isAdmin, isApproved, updateProfile } = useAuth()
+  const { user, profile, loading: authLoading, signOut, isAdmin, updateProfile } = useAuth()
   const [posts, setPosts]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [body, setBody]         = useState('')
@@ -219,7 +219,7 @@ export default function Timeline() {
   const [showProfile, setShowProfile] = useState(false)
   const listRef = useRef(null)
 
-  const canPost = user && (isApproved || isAdmin)
+  const canPost = !!user
 
   const loadPosts = async () => {
     const { data } = await supabase.from('timeline_posts')
@@ -300,16 +300,7 @@ export default function Timeline() {
 
       <div className="container" style={{maxWidth:720,padding:'32px 5% 80px'}}>
 
-        {/* Not approved banner */}
-        {user && !canPost && (
-          <div style={{background:'#fff7ed',border:'1.5px solid #fed7aa',borderRadius:14,padding:'16px 20px',marginBottom:24,display:'flex',gap:12,alignItems:'center'}}>
-            <span style={{fontSize:'1.5rem'}}>⏳</span>
-            <div>
-              <div style={{fontWeight:700,color:'#c2410c',marginBottom:3}}>Account pending approval</div>
-              <div style={{fontSize:'0.85rem',color:'#9a3412',lineHeight:1.6}}>Your account is waiting for admin approval. You can read posts but can't post yet. We'll notify you once approved.</div>
-            </div>
-          </div>
-        )}
+        
 
         {/* Compose box */}
         {canPost && (
