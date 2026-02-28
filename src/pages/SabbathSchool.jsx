@@ -292,6 +292,82 @@ export default function SabbathSchool() {
                       </div>
                     </div>
                   )}
+
+                  {/* Divine Service Message */}
+                  {(selected.divine_message_title || selected.divine_message_speaker) && (
+                    <div style={{marginTop:32,background:'linear-gradient(135deg,var(--brand-pale),#f0f7ff)',borderRadius:14,padding:'22px 26px',border:'1.5px solid #bfdbfe'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+                        <span style={{fontSize:'1.5rem'}}>⛪</span>
+                        <div>
+                          <div style={{fontFamily:'var(--font-display)',fontWeight:800,color:'var(--brand-deep)',fontSize:'1rem'}}>Divine Service Message</div>
+                          <div style={{fontSize:'0.74rem',color:'var(--text-light)'}}>Sabbath Morning Service</div>
+                        </div>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+                        {selected.divine_message_title && (
+                          <div style={{background:'white',borderRadius:10,padding:'12px 16px',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--brand-light)',marginBottom:4}}>Sermon Title</div>
+                            <div style={{fontWeight:700,color:'var(--brand-deep)',fontSize:'0.92rem'}}>{selected.divine_message_title}</div>
+                          </div>
+                        )}
+                        {selected.divine_message_speaker && (
+                          <div style={{background:'white',borderRadius:10,padding:'12px 16px',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--brand-light)',marginBottom:4}}>Preacher</div>
+                            <div style={{fontWeight:700,color:'var(--brand-deep)',fontSize:'0.92rem'}}>🎙 {selected.divine_message_speaker}</div>
+                          </div>
+                        )}
+                        {selected.divine_message_scripture && (
+                          <div style={{background:'white',borderRadius:10,padding:'12px 16px',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--brand-light)',marginBottom:4}}>Scripture</div>
+                            <div style={{fontWeight:700,color:'var(--gold)',fontSize:'0.92rem'}}>📜 {selected.divine_message_scripture}</div>
+                          </div>
+                        )}
+                      </div>
+                      {selected.divine_message_notes && (
+                        <div style={{marginTop:12,padding:'10px 14px',background:'rgba(255,255,255,0.7)',borderRadius:8,fontSize:'0.85rem',color:'var(--text-mid)',lineHeight:1.6,fontStyle:'italic'}}>
+                          {selected.divine_message_notes}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Evening Service Message */}
+                  {(selected.evening_title || selected.evening_speaker) && (
+                    <div style={{marginTop:16,background:'linear-gradient(135deg,#1e1b4b,#2d2b5e)',borderRadius:14,padding:'22px 26px',border:'1.5px solid #4338ca'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+                        <span style={{fontSize:'1.5rem'}}>🌙</span>
+                        <div>
+                          <div style={{fontFamily:'var(--font-display)',fontWeight:800,color:'white',fontSize:'1rem'}}>Evening Service Message</div>
+                          <div style={{fontSize:'0.74rem',color:'rgba(255,255,255,0.5)'}}>Sabbath Evening Service</div>
+                        </div>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+                        {selected.evening_title && (
+                          <div style={{background:'rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px'}}>
+                            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',marginBottom:4}}>Sermon Title</div>
+                            <div style={{fontWeight:700,color:'white',fontSize:'0.92rem'}}>{selected.evening_title}</div>
+                          </div>
+                        )}
+                        {selected.evening_speaker && (
+                          <div style={{background:'rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px'}}>
+                            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',marginBottom:4}}>Preacher</div>
+                            <div style={{fontWeight:700,color:'white',fontSize:'0.92rem'}}>🎙 {selected.evening_speaker}</div>
+                          </div>
+                        )}
+                        {selected.evening_scripture && (
+                          <div style={{background:'rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px'}}>
+                            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',marginBottom:4}}>Scripture</div>
+                            <div style={{fontWeight:700,color:'var(--gold)',fontSize:'0.92rem'}}>📜 {selected.evening_scripture}</div>
+                          </div>
+                        )}
+                      </div>
+                      {selected.evening_notes && (
+                        <div style={{marginTop:12,padding:'10px 14px',background:'rgba(255,255,255,0.07)',borderRadius:8,fontSize:'0.85rem',color:'rgba(255,255,255,0.7)',lineHeight:1.6,fontStyle:'italic'}}>
+                          {selected.evening_notes}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{padding:'16px 32px',borderTop:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',gap:12}}>

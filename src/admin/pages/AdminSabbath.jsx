@@ -6,7 +6,10 @@ import AdminCard from '../components/AdminCard'
 
 const EMPTY = {
   title:'', lesson_date:'', quarter:'', scripture:'', author:'',
-  summary:'', body:'', pdf_url:'', discussion_questions:'', published:true
+  summary:'', body:'', pdf_url:'', discussion_questions:'',
+  divine_message_speaker:'', divine_message_title:'', divine_message_scripture:'', divine_message_notes:'',
+  evening_speaker:'', evening_title:'', evening_scripture:'', evening_notes:'',
+  published:true
 }
 
 // Auto-generate quarter string from a date
@@ -137,6 +140,65 @@ export default function AdminSabbath() {
               <textarea {...F('discussion_questions')} rows={5} style={{resize:'vertical'}}
                 placeholder={"1. What does this lesson teach us about God's grace?\n2. How can you apply this in daily life?"} />
             </div>
+
+            {/* Divine Service Message */}
+            <div style={{gridColumn:'1/-1',marginTop:8}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,paddingBottom:10,borderBottom:'2px solid var(--brand-pale)'}}>
+                <span style={{fontSize:'1.2rem'}}>⛪</span>
+                <div>
+                  <div style={{fontWeight:800,color:'var(--brand-deep)',fontSize:'0.95rem'}}>Divine Service Message</div>
+                  <div style={{fontSize:'0.75rem',color:'var(--text-light)'}}>Main sermon for the Sabbath morning service</div>
+                </div>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Speaker / Preacher</label>
+                  <input {...F('divine_message_speaker')} placeholder="e.g. Pastor Emmanuel" />
+                </div>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Sermon Title</label>
+                  <input {...F('divine_message_title')} placeholder="e.g. Walking in the Light" />
+                </div>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Scripture Text</label>
+                  <input {...F('divine_message_scripture')} placeholder="e.g. John 8:12" />
+                </div>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Notes / Summary <span style={{fontWeight:400,fontSize:'0.72rem',color:'var(--text-light)'}}>(optional)</span></label>
+                  <input {...F('divine_message_notes')} placeholder="Brief description..." />
+                </div>
+              </div>
+            </div>
+
+            {/* Evening Service Message */}
+            <div style={{gridColumn:'1/-1',marginTop:8}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,paddingBottom:10,borderBottom:'2px solid var(--brand-pale)'}}>
+                <span style={{fontSize:'1.2rem'}}>🌙</span>
+                <div>
+                  <div style={{fontWeight:800,color:'var(--brand-deep)',fontSize:'0.95rem'}}>Evening Service Message</div>
+                  <div style={{fontSize:'0.75rem',color:'var(--text-light)'}}>Message for the Sabbath evening service</div>
+                </div>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Speaker / Preacher</label>
+                  <input {...F('evening_speaker')} placeholder="e.g. Elder John" />
+                </div>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Sermon Title</label>
+                  <input {...F('evening_title')} placeholder="e.g. The Promise of Rest" />
+                </div>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Scripture Text</label>
+                  <input {...F('evening_scripture')} placeholder="e.g. Matthew 11:28" />
+                </div>
+                <div className="form-group" style={{margin:0}}>
+                  <label>Notes / Summary <span style={{fontWeight:400,fontSize:'0.72rem',color:'var(--text-light)'}}>(optional)</span></label>
+                  <input {...F('evening_notes')} placeholder="Brief description..." />
+                </div>
+              </div>
+            </div>
+
             <div className="form-group">
               <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
                 <input type="checkbox" checked={form?.published!==false} onChange={e=>setForm(f=>({...f,published:e.target.checked}))} style={{width:18,height:18}} />
