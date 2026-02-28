@@ -4,12 +4,17 @@ import supabase from '../lib/supabase'
 const CACHE_KEY = 'ccg-sabbath-lessons'
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
 
-function loadCache() {
+function loadCache(ignoreExpiry = false) {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return null
-    const { data, ts } = JSON.parse(raw)
-    if (Date.now() - ts > CACHE_TTL) return null
+    const parsed = JSON.parse(raw)
+    // Support both old format (plain array) and new format ({ data, ts })
+    const data = Array.isArray(parsed) ? parsed : parsed.data
+    const ts   = Array.isArray(parsed) ? 0      : parsed.ts
+    if (!data || data.length === 0) return null
+    // If offline or ignoreExpiry, always return cached data regardless of age
+    if (!ignoreExpiry && ts && Date.now() - ts > CACHE_TTL && navigator.onLine) return null
     return data
   } catch { return null }
 }
@@ -40,20 +45,21 @@ export default function SabbathSchool() {
   const [quarter, setQuarter]   = useState('all')
 
   useEffect(() => {
-    // 1. Show cache IMMEDIATELY — never wait for network
-    const cached = loadCache()
+    // 1. Always load cache first with expiry ignored — show something immediately
+    const cached = loadCache(true)
     if (cached && cached.length > 0) {
       setLessons(cached)
       setSelected(thisWeekLesson(cached))
       setLoading(false)
-      if (!navigator.onLine) { setOffline(true); return }
     }
 
-    // 2. Try to refresh from network in background
-    supabase.from('sabbath_lessons')
-      .select('*').eq('published', true)
-      .order('lesson_date', { ascending: false })
-      .then(({ data }) => {
+    // 2. Try network refresh — but don't let it block or clear cached data
+    const fetchFresh = async () => {
+      try {
+        const { data } = await supabase.from('sabbath_lessons')
+          .select('*').eq('published', true)
+          .order('lesson_date', { ascending: false })
+
         if (data && data.length > 0) {
           setLessons(data)
           setSelected(prev => {
@@ -62,20 +68,24 @@ export default function SabbathSchool() {
           })
           saveCache(data)
           setOffline(false)
-        } else if (!cached || cached.length === 0) {
+        } else {
+          // Network returned nothing — keep cache, mark offline
+          if (!cached || cached.length === 0) setLoading(false)
           setOffline(true)
         }
-        setLoading(false)
-      })
-      .catch(() => {
-        // Network failed — if we have cache, stay on it silently with banner
-        if (cached && cached.length > 0) {
-          setOffline(true)
-        } else {
+      } catch {
+        // Network error — keep whatever cache we have
+        if (!cached || cached.length === 0) {
           setOffline(true)
           setLoading(false)
+        } else {
+          setOffline(true)
         }
-      })
+      }
+      if (!cached || cached.length === 0) setLoading(false)
+    }
+
+    fetchFresh()
   }, [])
 
   const quarters = [...new Set(lessons.map(l => l.quarter).filter(Boolean))].sort().reverse()
