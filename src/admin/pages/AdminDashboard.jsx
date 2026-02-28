@@ -6,7 +6,7 @@ import supabase from '../../lib/supabase'
 
 export default function AdminDashboard() {
   const { setPage } = useAdmin()
-  const [counts, setCounts] = useState({ sermons:0, events:0, posts:0, prayers:0, gallery:0, members:0ding:0, posts_timeline:0 })
+  const [counts, setCounts] = useState({ sermons:0, events:0, posts:0, prayers:0, gallery:0, members:0, posts_timeline:0 })
 
   useEffect(() => {
     const load = async () => {
