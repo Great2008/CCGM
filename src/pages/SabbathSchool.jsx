@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react'
 import supabase from '../lib/supabase'
 
+const CACHE_KEY = 'ccg-sabbath-lessons'
+const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const { data, ts } = JSON.parse(raw)
+    if (Date.now() - ts > CACHE_TTL) return null
+    return data
+  } catch { return null }
+}
+
+function saveCache(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })) } catch {}
+}
+
 function fmt(d) {
   if (!d) return ''
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
@@ -9,10 +26,8 @@ function fmt(d) {
 function thisWeekLesson(lessons) {
   if (!lessons?.length) return null
   const today = new Date(); today.setHours(0,0,0,0)
-  // Find lesson whose date is closest to today (on or before)
   const past = lessons.filter(l => new Date(l.lesson_date + 'T00:00:00') <= today)
   if (past.length) return past.sort((a,b) => new Date(b.lesson_date) - new Date(a.lesson_date))[0]
-  // If none past, return next upcoming
   return lessons.sort((a,b) => new Date(a.lesson_date) - new Date(b.lesson_date))[0]
 }
 
@@ -20,22 +35,39 @@ export default function SabbathSchool() {
   const [lessons, setLessons]   = useState([])
   const [selected, setSelected] = useState(null)
   const [loading, setLoading]   = useState(true)
+  const [offline, setOffline]   = useState(false)
   const [search, setSearch]     = useState('')
   const [quarter, setQuarter]   = useState('all')
 
   useEffect(() => {
+    // Load from cache immediately for instant offline display
+    const cached = loadCache()
+    if (cached) {
+      setLessons(cached)
+      setSelected(thisWeekLesson(cached))
+      setLoading(false)
+    }
+
+    // Then try to fetch fresh data
     supabase.from('sabbath_lessons')
       .select('*').eq('published', true)
       .order('lesson_date', { ascending: false })
-      .then(({ data }) => {
-        const l = data || []
-        setLessons(l)
-        setSelected(thisWeekLesson(l))
+      .then(({ data, error }) => {
+        if (data && data.length > 0) {
+          setLessons(data)
+          setSelected(prev => prev ? data.find(l => l.id === prev.id) || thisWeekLesson(data) : thisWeekLesson(data))
+          saveCache(data)
+          setOffline(false)
+        } else if (!cached) {
+          // No cache and no network
+          setOffline(true)
+        } else {
+          setOffline(true) // using cached data
+        }
         setLoading(false)
       })
   }, [])
 
-  // Build quarter list from lessons
   const quarters = [...new Set(lessons.map(l => l.quarter).filter(Boolean))].sort().reverse()
 
   const filtered = lessons.filter(l => {
@@ -53,8 +85,25 @@ export default function SabbathSchool() {
     </div>
   )
 
+  if (offline && lessons.length === 0) return (
+    <div style={{minHeight:'60vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16,padding:'0 24px',textAlign:'center'}}>
+      <div style={{fontSize:'3rem'}}>📴</div>
+      <div style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'1.3rem',color:'var(--brand-deep)'}}>You're Offline</div>
+      <div style={{color:'var(--text-mid)',maxWidth:320,lineHeight:1.7}}>
+        No cached lessons found. Visit Sabbath School while online at least once to enable offline access.
+      </div>
+    </div>
+  )
+
   return (
     <>
+      {/* Offline banner */}
+      {offline && lessons.length > 0 && (
+        <div style={{background:'#fff9f0',borderBottom:'2px solid #fed7aa',padding:'10px 20px',textAlign:'center',fontSize:'0.82rem',color:'#c2410c',fontWeight:600}}>
+          📴 You're offline — showing {lessons.length} cached lesson{lessons.length !== 1 ? 's' : ''}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{background:'linear-gradient(135deg,var(--brand-deep),var(--brand-mid))',padding:'clamp(90px,14vw,130px) 5% 56px',textAlign:'center'}}>
         <span className="section-label">Every Saturday</span>
@@ -64,6 +113,9 @@ export default function SabbathSchool() {
         <p style={{color:'rgba(255,255,255,0.75)',maxWidth:520,margin:'0 auto',lineHeight:1.8,fontSize:'0.95rem'}}>
           Weekly lessons to deepen your understanding of God's Word. Study along with our community every Sabbath.
         </p>
+        <div style={{marginTop:16,display:'inline-flex',alignItems:'center',gap:6,background:'rgba(255,255,255,0.12)',padding:'6px 16px',borderRadius:20,fontSize:'0.75rem',color:'rgba(255,255,255,0.8)',fontWeight:600}}>
+          ✅ Available Offline
+        </div>
       </div>
 
       <div className="container" style={{maxWidth:1100,padding:'40px 5% 80px'}}>
@@ -151,7 +203,6 @@ export default function SabbathSchool() {
               </div>
             ) : (
               <div style={{background:'white',borderRadius:16,boxShadow:'var(--shadow-sm)',border:'1.5px solid #e2e8f0',overflow:'hidden'}}>
-                {/* Lesson header */}
                 <div style={{background:'linear-gradient(135deg,var(--brand-pale),white)',padding:'28px 32px',borderBottom:'1px solid #f1f5f9'}}>
                   {selected.quarter && <div style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--brand-light)',marginBottom:8}}>{selected.quarter}</div>}
                   <h2 style={{fontFamily:'var(--font-display)',color:'var(--brand-deep)',fontSize:'clamp(1.4rem,2.5vw,1.8rem)',margin:'0 0 8px',lineHeight:1.3}}>{selected.title}</h2>
@@ -166,7 +217,6 @@ export default function SabbathSchool() {
                   </div>
                 </div>
 
-                {/* PDF download bar */}
                 {selected.pdf_url && (
                   <div style={{background:'#f0fdf4',borderBottom:'1px solid #bbf7d0',padding:'12px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
                     <span style={{color:'#166534',fontSize:'0.85rem',fontWeight:600}}>📄 PDF version available</span>
@@ -177,7 +227,6 @@ export default function SabbathSchool() {
                   </div>
                 )}
 
-                {/* Lesson body */}
                 <div style={{padding:'28px 32px'}}>
                   {selected.summary && (
                     <div style={{background:'var(--brand-pale)',borderLeft:'4px solid var(--brand-light)',borderRadius:'0 10px 10px 0',padding:'16px 20px',marginBottom:28,fontStyle:'italic',color:'var(--brand-deep)',lineHeight:1.8,fontSize:'0.95rem'}}>
@@ -210,7 +259,6 @@ export default function SabbathSchool() {
                     <div style={{textAlign:'center',padding:'40px 20px',color:'var(--text-light)'}}>No content available for this lesson.</div>
                   )}
 
-                  {/* Discussion questions */}
                   {selected.discussion_questions && (
                     <div style={{marginTop:32,background:'#fffbf0',borderRadius:12,padding:'20px 24px',border:'1.5px solid #fcd34d'}}>
                       <h4 style={{fontFamily:'var(--font-display)',color:'#92400e',margin:'0 0 14px',fontSize:'1rem'}}>💬 Discussion Questions</h4>
@@ -226,7 +274,6 @@ export default function SabbathSchool() {
                   )}
                 </div>
 
-                {/* Navigation */}
                 <div style={{padding:'16px 32px',borderTop:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',gap:12}}>
                   {(() => {
                     const idx = filtered.findIndex(l=>l.id===selected.id)
@@ -243,9 +290,7 @@ export default function SabbathSchool() {
         </div>
       </div>
 
-      <style>{`
-        @media(max-width:768px){.ss-grid{grid-template-columns:1fr!important;}}
-      `}</style>
+      <style>{`@media(max-width:768px){.ss-grid{grid-template-columns:1fr!important;}}`}</style>
     </>
   )
 }
