@@ -10,17 +10,16 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const load = async () => {
-      const [s,e,b,p,g,m,pen,t] = await Promise.all([
+      const [s,e,b,p,g,m,t] = await Promise.all([
         supabase.from('sermons').select('*',{count:'exact',head:true}),
         supabase.from('events').select('*',{count:'exact',head:true}),
         supabase.from('posts').select('*',{count:'exact',head:true}),
         supabase.from('prayers').select('*',{count:'exact',head:true}),
         supabase.from('gallery').select('*',{count:'exact',head:true}),
         supabase.from('profiles').select('*',{count:'exact',head:true}),
-
         supabase.from('timeline_posts').select('*',{count:'exact',head:true}),
       ])
-      setCounts({ sermons:s.count||0, events:e.count||0, posts:b.count||0, prayers:p.count||0, gallery:g.count||0, members:m.count||0ding:pen.count||0, posts_timeline:t.count||0 })
+      setCounts({ sermons:s.count||0, events:e.count||0, posts:b.count||0, prayers:p.count||0, gallery:g.count||0, members:m.count||0, posts_timeline:t.count||0 })
     }
     load()
   }, [])
@@ -32,15 +31,12 @@ export default function AdminDashboard() {
     { label:'Prayer Requests', value:counts.prayers,        icon:'🙏', page:'prayer',  bg:'#fff7ed' },
     { label:'Gallery Photos',  value:counts.gallery,        icon:'🖼', page:'gallery', bg:'#fef2f2' },
     { label:'Members',         value:counts.members,        icon:'👥', page:'members', bg:'#f8fafc' },
-
     { label:'Timeline Posts',  value:counts.posts_timeline, icon:'💬', page:'timeline',bg:'#eff6ff' },
   ]
 
   return (
     <div>
-      <PageHeader icon="📊" title="Dashboard" subtitle={new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})} />>Review Members →</button>
-        </div>
-      )}
+      <PageHeader icon="📊" title="Dashboard" subtitle={new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})} />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:14, marginBottom:32 }}>
         {stats.map(s=>(
