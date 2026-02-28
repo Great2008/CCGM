@@ -4,7 +4,7 @@ import { useTable } from '../useSupabaseAdmin'
 import supabaseAdmin from '../../lib/supabaseAdmin'
 import { Confirm } from '../components/CrudShell'
 
-const ROLE_COLORS = { admin:'#7c3aed', member:'#2563eb', pending:'#d97706' }
+const ROLE_COLORS = { admin:'#7c3aed', member:'#2563eb' }
 
 export default function AdminMembers() {
   const { showToast } = useAdmin()
@@ -18,15 +18,14 @@ export default function AdminMembers() {
   const filtered = members.filter(m => {
     const q = search.toLowerCase()
     const matchQ = !q || (m.full_name||'').toLowerCase().includes(q) || (m.email||'').toLowerCase().includes(q)
-    const matchF = filter==='all' || m.role===filter || (filter==='pending' && !m.approved)
+    const matchF = filter==='all' || m.role===filter
     return matchQ && matchF
   })
 
   const counts = {
     all: members.length,
     admin: members.filter(m=>m.role==='admin').length,
-    member: members.filter(m=>m.role==='member'&&m.approved).length,
-    pending: members.filter(m=>!m.approved&&m.role!=='admin').length,
+    member: members.filter(m=>m.role==='member').length,
   }
 
   const setRole = async (id, role) => {
@@ -36,14 +35,6 @@ export default function AdminMembers() {
     setSaving(false)
   }
 
-  const setApproved = async (id, approved) => {
-    setSaving(true)
-    try {
-      await update(id, { approved, role: approved ? 'member' : 'pending' })
-      showToast(approved ? '✅ Member approved!' : 'Member suspended.')
-    } catch(e) { showToast(e.message,'error') }
-    setSaving(false)
-  }
 
   const deleteUser = async () => {
     setSaving(true)
@@ -71,7 +62,7 @@ export default function AdminMembers() {
 
       {/* Filter tabs */}
       <div style={{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}}>
-        {[['all','All',counts.all],['member','Active',counts.member],['pending','Pending',counts.pending],['admin','Admins',counts.admin]].map(([id,label,count])=>(
+        {[['all','All',counts.all],['member','Active',counts.member],['admin','Admins',counts.admin]].map(([id,label,count])=>(
           <button key={id} onClick={()=>setFilter(id)} style={{
             padding:'8px 18px',borderRadius:30,border:'1.5px solid',
             borderColor:filter===id?'var(--brand-light)':'#e2e8f0',
@@ -114,9 +105,8 @@ export default function AdminMembers() {
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
                 <span style={{fontSize:'0.68rem',fontWeight:700,padding:'2px 10px',borderRadius:20,background:(ROLE_COLORS[m.role]||'#94a3b8')+'20',color:ROLE_COLORS[m.role]||'#94a3b8'}}>
-                  {m.role||'pending'}
+                  {m.role||'member'}
                 </span>
-                {!m.approved&&m.role!=='admin'&&<span style={{fontSize:'0.65rem',color:'#d97706',fontWeight:700}}>⏳ Pending</span>}
               </div>
             </div>
           ))}
@@ -140,8 +130,8 @@ export default function AdminMembers() {
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:18,fontSize:'0.8rem'}}>
                   {[
                     ['Joined', selected.created_at ? new Date(selected.created_at).toLocaleDateString() : 'N/A'],
-                    ['Role', selected.role||'pending'],
-                    ['Status', selected.approved ? '✅ Active' : '⏳ Pending'],
+                    ['Role', selected.role||'member'],
+                    ['Status', '✅ Active'],
                     ['Display Name', selected.display_name||'—'],
                   ].map(([k,v])=>(
                     <div key={k} style={{background:'#f8fafc',borderRadius:8,padding:'10px 12px'}}>
@@ -153,16 +143,6 @@ export default function AdminMembers() {
 
                 {/* Actions */}
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {!selected.approved && selected.role!=='admin' && (
-                    <button onClick={()=>setApproved(selected.id,true)} disabled={saving} style={{padding:'10px',borderRadius:10,border:'none',background:'#dcfce7',color:'#16a34a',fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',fontSize:'0.88rem'}}>
-                      ✅ Approve Member
-                    </button>
-                  )}
-                  {selected.approved && selected.role!=='admin' && (
-                    <button onClick={()=>setApproved(selected.id,false)} disabled={saving} style={{padding:'10px',borderRadius:10,border:'none',background:'#fff7ed',color:'#d97706',fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',fontSize:'0.88rem'}}>
-                      ⏸ Suspend Member
-                    </button>
-                  )}
                   {selected.role!=='admin' && (
                     <button onClick={()=>setRole(selected.id,'admin')} disabled={saving} style={{padding:'10px',borderRadius:10,border:'1.5px solid var(--brand-light)',background:'white',color:'var(--brand-light)',fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',fontSize:'0.88rem'}}>
                       🛡 Make Admin

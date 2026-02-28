@@ -6,7 +6,7 @@ import supabase from '../../lib/supabase'
 
 export default function AdminDashboard() {
   const { setPage } = useAdmin()
-  const [counts, setCounts] = useState({ sermons:0, events:0, posts:0, prayers:0, gallery:0, members:0, pending:0, posts_timeline:0 })
+  const [counts, setCounts] = useState({ sermons:0, events:0, posts:0, prayers:0, gallery:0, members:0ding:0, posts_timeline:0 })
 
   useEffect(() => {
     const load = async () => {
@@ -16,11 +16,11 @@ export default function AdminDashboard() {
         supabase.from('posts').select('*',{count:'exact',head:true}),
         supabase.from('prayers').select('*',{count:'exact',head:true}),
         supabase.from('gallery').select('*',{count:'exact',head:true}),
-        supabase.from('profiles').select('*',{count:'exact',head:true}).eq('approved',true),
-        supabase.from('profiles').select('*',{count:'exact',head:true}).eq('approved',false),
+        supabase.from('profiles').select('*',{count:'exact',head:true}),
+
         supabase.from('timeline_posts').select('*',{count:'exact',head:true}),
       ])
-      setCounts({ sermons:s.count||0, events:e.count||0, posts:b.count||0, prayers:p.count||0, gallery:g.count||0, members:m.count||0, pending:pen.count||0, posts_timeline:t.count||0 })
+      setCounts({ sermons:s.count||0, events:e.count||0, posts:b.count||0, prayers:p.count||0, gallery:g.count||0, members:m.count||0ding:pen.count||0, posts_timeline:t.count||0 })
     }
     load()
   }, [])
@@ -32,18 +32,13 @@ export default function AdminDashboard() {
     { label:'Prayer Requests', value:counts.prayers,        icon:'🙏', page:'prayer',  bg:'#fff7ed' },
     { label:'Gallery Photos',  value:counts.gallery,        icon:'🖼', page:'gallery', bg:'#fef2f2' },
     { label:'Members',         value:counts.members,        icon:'👥', page:'members', bg:'#f8fafc' },
-    { label:'Pending Members', value:counts.pending,        icon:'⏳', page:'members', bg:'#fef9c3' },
+
     { label:'Timeline Posts',  value:counts.posts_timeline, icon:'💬', page:'timeline',bg:'#eff6ff' },
   ]
 
   return (
     <div>
-      <PageHeader icon="📊" title="Dashboard" subtitle={new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})} />
-
-      {counts.pending > 0 && (
-        <div style={{ background:'#fef9c3', border:'1.5px solid #fde68a', borderRadius:12, padding:'14px 20px', marginBottom:24, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
-          <span style={{ fontWeight:700, color:'#92400e' }}>⏳ {counts.pending} member{counts.pending!==1?'s':''} awaiting approval</span>
-          <button className="btn btn-blue" style={{ padding:'8px 20px', fontSize:'0.82rem' }} onClick={()=>setPage('members')}>Review Members →</button>
+      <PageHeader icon="📊" title="Dashboard" subtitle={new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})} />>Review Members →</button>
         </div>
       )}
 

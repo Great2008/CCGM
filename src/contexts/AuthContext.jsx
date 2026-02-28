@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, isAdmin: profile?.role === 'admin', isApproved: profile?.approved === true }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, isAdmin: profile?.role === 'admin', isApproved: !!user }}>
       {children}
     </AuthContext.Provider>
   )
