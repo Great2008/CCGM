@@ -91,6 +91,36 @@ export default function AdminSabbath() {
               <div style={{marginTop:10}}>{form.discussion_questions.split('\n').filter(Boolean).map((q,i)=><div key={i} style={{marginBottom:8,color:'var(--text-dark)'}}>{i+1}. {q.replace(/^\d+\.\s*/,'')}</div>)}</div>
             </div>
           )}
+
+          {/* Divine Service Preview */}
+          {(form.divine_message_title||form.divine_message_speaker)&&(
+            <div style={{marginTop:24,background:'linear-gradient(135deg,var(--brand-pale),#f0f7ff)',borderRadius:12,padding:'18px 22px',border:'1.5px solid #bfdbfe'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                <span style={{fontSize:'1.2rem'}}>⛪</span>
+                <strong style={{color:'var(--brand-deep)'}}>Divine Service Message</strong>
+                <span style={{fontSize:'0.72rem',color:'var(--text-light)'}}>Sabbath Morning</span>
+              </div>
+              {form.divine_message_title&&<div style={{fontWeight:700,color:'var(--brand-deep)',marginBottom:4}}>{form.divine_message_title}</div>}
+              {form.divine_message_speaker&&<div style={{fontSize:'0.85rem',color:'var(--text-mid)',marginBottom:4}}>🎙 {form.divine_message_speaker}</div>}
+              {form.divine_message_scripture&&<div style={{fontSize:'0.85rem',color:'var(--gold)',fontWeight:700,marginBottom:4}}>📜 {form.divine_message_scripture}</div>}
+              {form.divine_message_notes&&<div style={{fontSize:'0.82rem',color:'var(--text-mid)',fontStyle:'italic',marginTop:6}}>{form.divine_message_notes}</div>}
+            </div>
+          )}
+
+          {/* Evening Service Preview */}
+          {(form.evening_title||form.evening_speaker)&&(
+            <div style={{marginTop:12,background:'linear-gradient(135deg,#1e1b4b,#2d2b5e)',borderRadius:12,padding:'18px 22px',border:'1.5px solid #4338ca'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                <span style={{fontSize:'1.2rem'}}>🌙</span>
+                <strong style={{color:'white'}}>Evening Service Message</strong>
+                <span style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.45)'}}>Sabbath Evening</span>
+              </div>
+              {form.evening_title&&<div style={{fontWeight:700,color:'white',marginBottom:4}}>{form.evening_title}</div>}
+              {form.evening_speaker&&<div style={{fontSize:'0.85rem',color:'rgba(255,255,255,0.7)',marginBottom:4}}>🎙 {form.evening_speaker}</div>}
+              {form.evening_scripture&&<div style={{fontSize:'0.85rem',color:'var(--gold)',fontWeight:700,marginBottom:4}}>📜 {form.evening_scripture}</div>}
+              {form.evening_notes&&<div style={{fontSize:'0.82rem',color:'rgba(255,255,255,0.6)',fontStyle:'italic',marginTop:6}}>{form.evening_notes}</div>}
+            </div>
+          )}
         </AdminCard>
       ) : (
         <AdminCard style={{maxWidth:800}}>
