@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 
 const BELL_SEEN_KEY = 'ccg-notif-last-seen'
+import NotificationCenter from './NotificationCenter'
 
 const NAV_LINKS = [
   { to:'/',         label:'Home' },
@@ -13,6 +14,7 @@ const NAV_LINKS = [
   { to:'/blog',     label:'Blog' },
   { to:'/gallery',  label:'Gallery' },
   { to:'/sabbath-school', label:'📖 Sabbath' },
+  { to:'/find-church', label:'⛪ Find Church' },
   { to:'/timeline', label:'🌐 Timeline' },
   { to:'/contact',  label:'Contact' },
 ]
@@ -144,7 +146,8 @@ export default function Navbar() {
               )}
             </div>
 
-          
+            {/* Notification Bell */}
+            <NotificationCenter user={user} />
 
             {/* Notifications bell */}
             <Link to="/notifications"
