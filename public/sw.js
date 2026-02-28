@@ -1,10 +1,11 @@
-// CCG World Service Worker v3 — Full Offline PWA + Push Notifications
-const CACHE = 'ccgworld-v3'
+// CCG World Service Worker v4 — Full Offline PWA + Push Notifications
+const CACHE = 'ccgworld-v4'
 
 const PRECACHE = [
   '/', '/bible', '/hymnal', '/devotional',
   '/sermons', '/events', '/about', '/contact',
   '/gallery', '/blog', '/live', '/sabbath-school', '/timeline',
+  '/notifications',
 ]
 
 self.addEventListener('install', e => {
@@ -29,10 +30,13 @@ self.addEventListener('fetch', e => {
   const { request } = e
   const url = new URL(request.url)
   if (request.method !== 'GET' || url.protocol === 'chrome-extension:') return
+
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(fetch(request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })))
     return
   }
+
+  // Static assets: cache-first
   if (request.destination === 'script' || request.destination === 'style' ||
       request.destination === 'font' || request.destination === 'image') {
     e.respondWith(
@@ -49,11 +53,28 @@ self.addEventListener('fetch', e => {
     )
     return
   }
+
+  // Navigation: network-first, fall back to cached version of that exact page,
+  // then fall back to cached '/' (the app shell) so React Router can handle it
   if (request.mode === 'navigate') {
     e.respondWith(
-      fetch(request).catch(() =>
-        caches.match('/').then(r => r || new Response('<h1>Offline</h1>', { headers: { 'Content-Type': 'text/html' } }))
-      )
+      fetch(request)
+        .then(res => {
+          // Cache every successfully fetched page
+          if (res && res.status === 200) {
+            const clone = res.clone()
+            caches.open(CACHE).then(c => c.put(request, clone))
+          }
+          return res
+        })
+        .catch(() =>
+          caches.match(request).then(cached =>
+            cached ||
+            caches.match('/').then(r =>
+              r || new Response('<h1>Offline</h1>', { headers: { 'Content-Type': 'text/html' } })
+            )
+          )
+        )
     )
     return
   }
