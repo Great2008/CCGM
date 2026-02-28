@@ -3,26 +3,17 @@ import supabase from '../lib/supabase'
 
 const CACHE_KEY = 'ccgworld_hymns'
 
-async function loadHymns() {
+function getCached() {
   try {
-    const { data, error } = await supabase
-      .from('hymns')
-      .select('*')
-      .eq('published', true)
-      .order('sort_order', { ascending: true })
-    if (error) throw error
-    // Always overwrite cache with whatever Supabase returns — including empty arrays.
-    // This ensures deleted hymns are removed from the offline cache.
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data ?? [])) } catch {}
-    return data ?? []
-  } catch {
-    // Only fall back to cache if the network/Supabase call itself failed (offline)
-    try {
-      const cached = localStorage.getItem(CACHE_KEY)
-      if (cached) return JSON.parse(cached)
-    } catch {}
-    return []
-  }
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : null
+  } catch { return null }
+}
+
+function setCached(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch {}
 }
 
 export default function Hymnal() {
@@ -39,7 +30,29 @@ export default function Hymnal() {
   const audioRef = useRef(null)
 
   useEffect(() => {
-    loadHymns().then(data => { setHymns(data); setLoading(false) })
+    // 1. Show cache immediately — never wait for network
+    const cached = getCached()
+    if (cached && cached.length > 0) {
+      setHymns(cached)
+      setLoading(false)
+    }
+
+    // 2. Refresh from network in background
+    supabase.from('hymns')
+      .select('*').eq('published', true)
+      .order('sort_order', { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setHymns(data)
+          setCached(data)
+        } else if (!cached || cached.length === 0) {
+          setLoading(false)
+        }
+        if (!cached || cached.length === 0) setLoading(false)
+      })
+      .catch(() => {
+        if (!cached || cached.length === 0) setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
