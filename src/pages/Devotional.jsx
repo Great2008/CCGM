@@ -11,24 +11,17 @@ function getMonthDay() {
   return `${months[d.getMonth()]} ${d.getDate()}`
 }
 
-async function loadDevotionals() {
+function getCached() {
   try {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .eq('type', 'devotional')
-      .eq('published', true)
-      .order('date', { ascending: false })
-    if (error) throw error
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data ?? [])) } catch {}
-    return data ?? []
-  } catch {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY)
-      if (cached) return JSON.parse(cached)
-    } catch {}
-    return []
-  }
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : null
+  } catch { return null }
+}
+
+function setCached(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch {}
 }
 
 export default function Devotional() {
@@ -46,22 +39,56 @@ export default function Devotional() {
   })
 
   useEffect(() => {
-    loadDevotionals().then(data => {
-      setDevotionals(data)
+    // 1. Show cache immediately — never wait for network
+    const cached = getCached()
+    if (cached && cached.length > 0) {
+      setDevotionals(cached)
       setLoading(false)
       // Auto-select: last read → today's → first
-      if (data.length === 0) return
       try {
         const lastId = localStorage.getItem(LAST_READ_KEY)
         if (lastId) {
-          const last = data.find(d => d.id === lastId)
-          if (last) { setSelected(last); return }
+          const last = cached.find(d => d.id === lastId)
+          if (last) { setSelected(last) }
+          else { setSelected(cached.find(d => d.date === today) || cached[0]) }
+        } else {
+          setSelected(cached.find(d => d.date === today) || cached[0])
         }
-      } catch {}
-      // Try to find today's devotional by date field matching "Jan 15" style
-      const todayDev = data.find(d => d.date === today)
-      setSelected(todayDev || data[0])
-    })
+      } catch {
+        setSelected(cached.find(d => d.date === today) || cached[0])
+      }
+    }
+
+    // 2. Refresh from network in background
+    supabase.from('blog_posts')
+      .select('*')
+      .eq('type', 'devotional')
+      .eq('published', true)
+      .order('date', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setDevotionals(data)
+          setCached(data)
+          // Only update selected if nothing is selected yet
+          setSelected(prev => {
+            if (prev) return data.find(d => d.id === prev.id) || prev
+            try {
+              const lastId = localStorage.getItem(LAST_READ_KEY)
+              if (lastId) {
+                const last = data.find(d => d.id === lastId)
+                if (last) return last
+              }
+            } catch {}
+            return data.find(d => d.date === today) || data[0]
+          })
+        } else if (!cached || cached.length === 0) {
+          setLoading(false)
+        }
+        if (!cached || cached.length === 0) setLoading(false)
+      })
+      .catch(() => {
+        if (!cached || cached.length === 0) setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
