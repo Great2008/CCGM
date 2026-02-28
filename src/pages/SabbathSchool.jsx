@@ -40,31 +40,41 @@ export default function SabbathSchool() {
   const [quarter, setQuarter]   = useState('all')
 
   useEffect(() => {
-    // Load from cache immediately for instant offline display
+    // 1. Show cache IMMEDIATELY — never wait for network
     const cached = loadCache()
-    if (cached) {
+    if (cached && cached.length > 0) {
       setLessons(cached)
       setSelected(thisWeekLesson(cached))
       setLoading(false)
+      if (!navigator.onLine) { setOffline(true); return }
     }
 
-    // Then try to fetch fresh data
+    // 2. Try to refresh from network in background
     supabase.from('sabbath_lessons')
       .select('*').eq('published', true)
       .order('lesson_date', { ascending: false })
-      .then(({ data, error }) => {
+      .then(({ data }) => {
         if (data && data.length > 0) {
           setLessons(data)
-          setSelected(prev => prev ? data.find(l => l.id === prev.id) || thisWeekLesson(data) : thisWeekLesson(data))
+          setSelected(prev => {
+            if (!prev) return thisWeekLesson(data)
+            return data.find(l => l.id === prev.id) || thisWeekLesson(data)
+          })
           saveCache(data)
           setOffline(false)
-        } else if (!cached) {
-          // No cache and no network
+        } else if (!cached || cached.length === 0) {
           setOffline(true)
-        } else {
-          setOffline(true) // using cached data
         }
         setLoading(false)
+      })
+      .catch(() => {
+        // Network failed — if we have cache, stay on it silently with banner
+        if (cached && cached.length > 0) {
+          setOffline(true)
+        } else {
+          setOffline(true)
+          setLoading(false)
+        }
       })
   }, [])
 
