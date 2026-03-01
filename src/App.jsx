@@ -18,6 +18,7 @@ import PushPrompt from './components/PushPrompt'
 import SabbathSchool from './pages/SabbathSchool'
 import Notifications from './pages/Notifications'
 import FindChurch from './pages/FindChurch'
+import PrayerWall from './pages/PrayerWall'
 
 function AppInner() {
   const { user } = useAuth()
@@ -41,6 +42,7 @@ function AppInner() {
           <Route path="/sabbath-school" element={<SabbathSchool />} />
           <Route path="/notifications"  element={<Notifications />} />
           <Route path="/find-church"     element={<FindChurch />} />
+          <Route path="/prayer-wall"     element={<PrayerWall />} />
         </Routes>
       </main>
       <Footer />

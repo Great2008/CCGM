@@ -8,7 +8,9 @@ const SC = { new:{bg:'#eff6ff',text:'#1d4ed8',label:'New'}, praying:{bg:'#dcfce7
 
 export default function AdminPrayer() {
   const { showToast } = useAdmin()
+  const [tab, setTab]         = useState('wall') // 'wall' | 'requests'
   const [items, setItems]     = useState([])
+  const [wallItems, setWallItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [note, setNote]       = useState('')
@@ -17,8 +19,13 @@ export default function AdminPrayer() {
 
   const load = async () => {
     setLoading(true)
-    const { data } = await supabase.from('prayers').select('*').order('submitted_at', { ascending: false })
-    setItems(data||[]); setLoading(false)
+    const [req, wall] = await Promise.all([
+      supabase.from('prayers').select('*').order('submitted_at', { ascending: false }),
+      supabase.from('prayer_requests').select('*, prayer_counts:prayer_prays(count), reply_count:prayer_replies(count)').order('created_at', { ascending: false })
+    ])
+    setItems(req.data||[])
+    setWallItems((wall.data||[]).map(p=>({ ...p, pray_count: p.prayer_counts?.[0]?.count||0, reply_count: p.reply_count?.[0]?.count||0 })))
+    setLoading(false)
   }
   useEffect(() => { load() }, [])
 
@@ -44,6 +51,13 @@ export default function AdminPrayer() {
     setItems(i=>i.filter(x=>x.id!==id)); setSelected(null); showToast('Deleted')
   }
 
+  const deleteWallPost = async id => {
+    await supabase.from('prayer_prays').delete().eq('prayer_id', id)
+    await supabase.from('prayer_replies').delete().eq('prayer_id', id)
+    await supabase.from('prayer_requests').delete().eq('id', id)
+    setWallItems(i=>i.filter(x=>x.id!==id)); showToast('Deleted')
+  }
+
   const filtered = filter==='all' ? items : items.filter(i=>(i.status||'new')===filter)
   const counts = { new:items.filter(i=>!i.status||i.status==='new').length, praying:items.filter(i=>i.status==='praying').length, answered:items.filter(i=>i.status==='answered').length }
 
@@ -51,7 +65,45 @@ export default function AdminPrayer() {
 
   return (
     <div>
-      <PageHeader icon="🙏" title="Prayer Requests" subtitle={`${items.length} total · ${counts.new} new`} />
+      <PageHeader icon="🙏" title="Prayer" subtitle={`${items.length} form requests · ${wallItems.length} wall posts`} />
+
+      {/* Tab switcher */}
+      <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+        <button onClick={()=>setTab('wall')} style={{ padding:'9px 22px', borderRadius:30, border:'1.5px solid', borderColor:tab==='wall'?'var(--brand-light)':'#e2e8f0', background:tab==='wall'?'var(--brand-light)':'white', color:tab==='wall'?'white':'var(--text-mid)', fontSize:'0.85rem', fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+          🙏 Prayer Wall ({wallItems.length})
+        </button>
+        <button onClick={()=>setTab('requests')} style={{ padding:'9px 22px', borderRadius:30, border:'1.5px solid', borderColor:tab==='requests'?'var(--brand-light)':'#e2e8f0', background:tab==='requests'?'var(--brand-light)':'white', color:tab==='requests'?'white':'var(--text-mid)', fontSize:'0.85rem', fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+          📋 Form Requests ({items.length})
+        </button>
+      </div>
+
+      {/* Prayer Wall tab */}
+      {tab==='wall' && (
+        <div>
+          {wallItems.length===0 && <AdminCard><div style={{textAlign:'center',padding:'40px 20px',color:'var(--text-light)'}}>No prayer wall posts yet.</div></AdminCard>}
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {wallItems.map(item=>(
+              <AdminCard key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16}}>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
+                    {item.category&&<span style={{fontSize:'0.68rem',background:'var(--brand-pale)',color:'var(--brand-light)',padding:'2px 10px',borderRadius:20,fontWeight:700}}>{item.category}</span>}
+                    <span style={{fontSize:'0.72rem',color:'var(--text-light)'}}>{new Date(item.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p style={{margin:'0 0 8px',color:'var(--text-dark)',fontSize:'0.9rem',lineHeight:1.7}}>{item.request}</p>
+                  <div style={{display:'flex',gap:12,fontSize:'0.78rem',color:'var(--text-light)'}}>
+                    <span>🙏 {item.pray_count} praying</span>
+                    <span>💬 {item.reply_count} replies</span>
+                  </div>
+                </div>
+                <button onClick={()=>deleteWallPost(item.id)} style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid #fecaca',background:'white',color:'#dc2626',cursor:'pointer',fontSize:'0.78rem',fontFamily:'var(--font-body)',flexShrink:0}}>🗑 Delete</button>
+              </AdminCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Form Requests tab */}
+      {tab==='requests' && <>
       <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
         {[['all','All'],['new',`New (${counts.new})`],['praying','Praying'],['answered','Answered'],['closed','Closed']].map(([id,label])=>(
           <button key={id} onClick={()=>setFilter(id)} style={{ padding:'8px 18px', borderRadius:30, border:'1.5px solid', borderColor:filter===id?'var(--brand-light)':'#e2e8f0', background:filter===id?'var(--brand-light)':'white', color:filter===id?'white':'var(--text-mid)', fontSize:'0.82rem', fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>{label}</button>
@@ -113,6 +165,7 @@ export default function AdminPrayer() {
           </div>
         )}
       </div>
+    </> }
     </div>
   )
 }
