@@ -17,7 +17,7 @@ export default function AdminBlog() {
   const [preview, setPreview] = useState(false)
 
   const load = async () => {
-    const { data, error } = await supabaseAdmin.from('blog_posts').select('*').order('date', { ascending: false })
+    const { data, error } = await supabaseAdmin.from('posts').select('*').order('date', { ascending: false })
     if (error) showToast('Failed to load: ' + error.message, 'error')
     setItems(data || [])
     setLoading(false)
@@ -29,14 +29,14 @@ export default function AdminBlog() {
     const { id, ...rest } = form
     const payload = { ...rest, tags: typeof rest.tags==='string' ? rest.tags.split(',').map(t=>t.trim()).filter(Boolean) : rest.tags, date: rest.date||new Date().toISOString().split('T')[0] }
     const { error } = id
-      ? await supabaseAdmin.from('blog_posts').update(payload).eq('id', id)
-      : await supabaseAdmin.from('blog_posts').insert(payload)
+      ? await supabaseAdmin.from('posts').update(payload).eq('id', id)
+      : await supabaseAdmin.from('posts').insert(payload)
     if (!error) { showToast(id?'Post updated!':'Post published!'); setForm(null); load() }
     else showToast(error.message,'error')
     setSaving(false)
   }
   const handleDelete = async () => {
-    const { error: err } = await supabaseAdmin.from('blog_posts').delete().eq('id', delId)
+    const { error: err } = await supabaseAdmin.from('posts').delete().eq('id', delId)
     if (!err) { showToast('Deleted'); setItems(i=>i.filter(x=>x.id!==delId)) }
     else showToast(err.message,'error')
     setDelId(null)

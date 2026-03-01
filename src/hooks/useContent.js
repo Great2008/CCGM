@@ -91,7 +91,7 @@ export function useBlogContent() {
   const [data, setData]     = useState([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    supabase.from('blog_posts').select('*').eq('published', true).order('date', { ascending: false })
+    supabase.from('posts').select('*').eq('published', true).order('date', { ascending: false })
       .then(({ data: d }) => { setData(d||[]); setLoading(false) })
   }, [])
   return { data, loading }

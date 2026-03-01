@@ -6,7 +6,7 @@ const CACHE_KEY = 'ccgworld_blog'
 async function loadPosts() {
   try {
     const { data, error } = await supabase
-      .from('blog_posts')
+      .from('posts')
       .select('*')
       .eq('published', true)
       .order('date', { ascending: false })

@@ -60,7 +60,7 @@ export default function Devotional() {
     }
 
     // 2. Refresh from network in background
-    supabase.from('blog_posts')
+    supabase.from('posts')
       .select('*')
       .eq('type', 'devotional')
       .eq('published', true)

@@ -89,7 +89,7 @@ export default function AdminAnalytics() {
       supabaseAdmin.from('timeline_comments').select('*',{count:'exact',head:true}).gte('created_at',sinceStr),
       supabaseAdmin.from('sermons').select('*',{count:'exact',head:true}),
       supabaseAdmin.from('events').select('*',{count:'exact',head:true}),
-      supabaseAdmin.from('blog_posts').select('*',{count:'exact',head:true}),
+      supabaseAdmin.from('posts').select('*',{count:'exact',head:true}),
       supabaseAdmin.from('prayers').select('*',{count:'exact',head:true}).gte('submitted_at',sinceStr),
       supabaseAdmin.from('sabbath_lessons').select('*',{count:'exact',head:true}),
       supabaseAdmin.from('profiles').select('created_at').gte('created_at',sinceStr).order('created_at'),
