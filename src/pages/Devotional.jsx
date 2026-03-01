@@ -278,15 +278,29 @@ export default function Devotional() {
 
                     {/* Body */}
                     <div style={{ padding: '28px 32px' }}>
-                      {selected.body ? selected.body.split('\n\n').map((para, i) => (
-                        <p key={i} style={{ lineHeight: 1.9, color: 'var(--text-dark)', marginBottom: 18, fontSize: '0.97rem' }}>
-                          {para.split('**').map((chunk, j) =>
-                            j % 2 === 1
-                              ? <strong key={j} style={{ color: 'var(--brand-deep)' }}>{chunk}</strong>
-                              : chunk
+                      {selected.body ? (
+                        <div style={{ lineHeight: 1.9, color: 'var(--text-dark)', fontSize: '0.97rem' }}>
+                          {selected.body.split('\n\n').map((para, i) =>
+                            para.startsWith('##') ? (
+                              <h3 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.15rem', margin: '28px 0 12px', borderBottom: '2px solid var(--brand-pale)', paddingBottom: 6 }}>
+                                {para.replace(/^##\s*/, '')}
+                              </h3>
+                            ) : para.startsWith('#') ? (
+                              <h4 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-light)', fontSize: '1rem', margin: '20px 0 8px', fontWeight: 700 }}>
+                                {para.replace(/^#\s*/, '')}
+                              </h4>
+                            ) : (
+                              <p key={i} style={{ marginBottom: 18 }}>
+                                {para.split('**').map((chunk, j) =>
+                                  j % 2 === 1
+                                    ? <strong key={j} style={{ color: 'var(--brand-deep)' }}>{chunk}</strong>
+                                    : chunk
+                                )}
+                              </p>
+                            )
                           )}
-                        </p>
-                      )) : (
+                        </div>
+                      ) : (
                         <p style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>No content for this devotional yet.</p>
                       )}
 

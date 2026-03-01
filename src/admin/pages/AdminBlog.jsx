@@ -52,7 +52,17 @@ export default function AdminBlog() {
           <h1 style={{ fontFamily:'var(--font-display)', color:'var(--brand-deep)', fontSize:'1.8rem', marginBottom:8 }}>{form.title||'Untitled'}</h1>
           <div style={{ fontSize:'0.82rem', color:'var(--text-light)', marginBottom:20 }}>{form.author} · {form.date}</div>
           <p style={{ color:'var(--text-mid)', fontStyle:'italic', marginBottom:24, lineHeight:1.8 }}>{form.excerpt}</p>
-          {(form.body||'').split('\n\n').map((p,i)=><p key={i} style={{ lineHeight:1.9, marginBottom:16, color:'var(--text-dark)' }}>{p}</p>)}
+          {(form.body||'').split('\n\n').map((para,i)=>
+            para.startsWith('##') ? (
+              <h3 key={i} style={{ fontFamily:'var(--font-display)', color:'var(--brand-deep)', fontSize:'1.15rem', margin:'24px 0 10px', borderBottom:'2px solid var(--brand-pale)', paddingBottom:6 }}>{para.replace(/^##\s*/,'')}</h3>
+            ) : para.startsWith('#') ? (
+              <h4 key={i} style={{ fontFamily:'var(--font-display)', color:'var(--brand-light)', fontSize:'1rem', margin:'18px 0 8px', fontWeight:700 }}>{para.replace(/^#\s*/,'')}</h4>
+            ) : (
+              <p key={i} style={{ lineHeight:1.9, marginBottom:16, color:'var(--text-dark)' }}>
+                {para.split('**').map((chunk,j)=> j%2===1 ? <strong key={j} style={{color:'var(--brand-deep)'}}>{chunk}</strong> : chunk)}
+              </p>
+            )
+          )}
         </AdminCard>
       ) : (
         <AdminCard style={{ maxWidth:760 }}>
@@ -64,7 +74,17 @@ export default function AdminBlog() {
             <div className="form-group"><label>Type</label><select value={form?.type||'blog'} onChange={e=>setForm(f=>({...f,type:e.target.value}))} style={{ padding:'10px 14px', borderRadius:8, border:'1.5px solid #e2e8f0', width:'100%', fontFamily:'var(--font-body)' }}><option value="blog">Blog Post</option><option value="devotional">Devotional</option></select></div>
             <div className="form-group" style={{ gridColumn:'1/-1' }}><label>Cover Image URL</label><input {...F('image_url')} /></div>
             <div className="form-group" style={{ gridColumn:'1/-1' }}><label>Excerpt</label><textarea {...F('excerpt')} rows={2} style={{ resize:'vertical' }} /></div>
-            <div className="form-group" style={{ gridColumn:'1/-1' }}><label>Body <span style={{ fontWeight:400, fontSize:'0.78rem', color:'var(--text-light)' }}>(blank lines = new paragraph)</span></label><textarea {...F('body')} rows={14} style={{ resize:'vertical', fontFamily:'monospace', fontSize:'0.88rem', lineHeight:1.7 }} /></div>
+            <div className="form-group" style={{ gridColumn:'1/-1' }}>
+              <label>Body
+                <span style={{ fontWeight:400, fontSize:'0.78rem', color:'var(--text-light)', marginLeft:8 }}>(blank lines = new paragraph)</span>
+              </label>
+              <div style={{ background:'#f8fafc', border:'1.5px solid #e2e8f0', borderRadius:'8px 8px 0 0', padding:'8px 14px', display:'flex', gap:16, flexWrap:'wrap', fontSize:'0.75rem', color:'var(--text-mid)', borderBottom:'none' }}>
+                <span><code style={{ background:'#e2e8f0', padding:'1px 6px', borderRadius:4 }}>## Heading</code> → Section heading</span>
+                <span><code style={{ background:'#e2e8f0', padding:'1px 6px', borderRadius:4 }}># Subheading</code> → Subheading</span>
+                <span><code style={{ background:'#e2e8f0', padding:'1px 6px', borderRadius:4 }}>**text**</code> → <strong>Bold</strong></span>
+              </div>
+              <textarea {...F('body')} rows={14} style={{ resize:'vertical', fontFamily:'monospace', fontSize:'0.88rem', lineHeight:1.7, borderRadius:'0 0 8px 8px' }} />
+            </div>
             <div className="form-group" style={{ gridColumn:'1/-1' }}><label>Tags (comma separated)</label><input {...F('tags')} placeholder="Faith, Prayer, Healing" /></div>
             <div className="form-group"><label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}><input type="checkbox" checked={form?.published!==false} onChange={e=>setForm(f=>({...f,published:e.target.checked}))} style={{ width:18, height:18 }} /> Published</label></div>
           </div>
