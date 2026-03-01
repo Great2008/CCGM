@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAdmin } from '../AdminApp'
 import PageHeader from '../components/PageHeader'
 import AdminCard from '../components/AdminCard'
-import { getAll, insert, update, remove } from '../supabase'
+import supabaseAdmin from '../../lib/supabaseAdmin'
 
 const EMPTY = { title:'', author:'', date:'', category:'', type:'blog', excerpt:'', body:'', image_url:'', tags:'', published:true }
 const CATS = ['Devotional','Sermon Notes','Announcement','Ministry','Testimony','Teaching']
@@ -16,22 +16,30 @@ export default function AdminBlog() {
   const [delId, setDelId] = useState(null)
   const [preview, setPreview] = useState(false)
 
-  const load = () => getAll('blog_posts','date').then(({data})=>{ setItems(data); setLoading(false) })
+  const load = async () => {
+    const { data, error } = await supabaseAdmin.from('blog_posts').select('*').order('date', { ascending: false })
+    if (error) showToast('Failed to load: ' + error.message, 'error')
+    setItems(data || [])
+    setLoading(false)
+  }
   useEffect(() => { load() }, [])
 
   const handleSubmit = async e => {
     e.preventDefault(); setSaving(true)
     const { id, ...rest } = form
     const payload = { ...rest, tags: typeof rest.tags==='string' ? rest.tags.split(',').map(t=>t.trim()).filter(Boolean) : rest.tags, date: rest.date||new Date().toISOString().split('T')[0] }
-    const { error } = id ? await update('blog_posts',id,payload) : await insert('blog_posts',payload)
+    const { error } = id
+      ? await supabaseAdmin.from('blog_posts').update(payload).eq('id', id)
+      : await supabaseAdmin.from('blog_posts').insert(payload)
     if (!error) { showToast(id?'Post updated!':'Post published!'); setForm(null); load() }
     else showToast(error.message,'error')
     setSaving(false)
   }
   const handleDelete = async () => {
-    const err = await remove('blog_posts',delId)
+    const { error: err } = await supabaseAdmin.from('blog_posts').delete().eq('id', delId)
     if (!err) { showToast('Deleted'); setItems(i=>i.filter(x=>x.id!==delId)) }
-    else showToast(err.message,'error'); setDelId(null)
+    else showToast(err.message,'error')
+    setDelId(null)
   }
   const F = k => ({ value:form?.[k]||'', onChange:e=>setForm(f=>({...f,[k]:e.target.value})) })
 

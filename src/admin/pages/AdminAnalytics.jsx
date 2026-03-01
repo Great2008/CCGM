@@ -80,20 +80,20 @@ export default function AdminAnalytics() {
       { data: topSermons },
       { data: recentPosts },
     ] = await Promise.all([
-      supabaseAdmin.from('profiles').select('*',{count:'exact',head:true}).eq('approved',true),
-      supabaseAdmin.from('profiles').select('*',{count:'exact',head:true}).eq('approved',true).gte('created_at',sinceStr),
-      supabaseAdmin.from('profiles').select('*',{count:'exact',head:true}).eq('approved',false),
+      supabaseAdmin.from('profiles').select('*',{count:'exact',head:true}),
+      supabaseAdmin.from('profiles').select('*',{count:'exact',head:true}).gte('created_at',sinceStr),
+      supabaseAdmin.from('profiles').select('*',{count:'exact',head:true}).eq('role','admin').not('role','eq','admin'),
       supabaseAdmin.from('timeline_posts').select('*',{count:'exact',head:true}),
       supabaseAdmin.from('timeline_posts').select('*',{count:'exact',head:true}).gte('created_at',sinceStr),
       supabaseAdmin.from('timeline_reactions').select('*',{count:'exact',head:true}).gte('created_at',sinceStr),
       supabaseAdmin.from('timeline_comments').select('*',{count:'exact',head:true}).gte('created_at',sinceStr),
       supabaseAdmin.from('sermons').select('*',{count:'exact',head:true}),
       supabaseAdmin.from('events').select('*',{count:'exact',head:true}),
-      supabaseAdmin.from('posts').select('*',{count:'exact',head:true}),
+      supabaseAdmin.from('blog_posts').select('*',{count:'exact',head:true}),
       supabaseAdmin.from('prayers').select('*',{count:'exact',head:true}).gte('submitted_at',sinceStr),
       supabaseAdmin.from('sabbath_lessons').select('*',{count:'exact',head:true}),
-      supabaseAdmin.from('profiles').select('created_at').eq('approved',true).gte('created_at',sinceStr).order('created_at'),
-      supabaseAdmin.from('profiles').select('display_name,full_name,email,created_at').eq('approved',true).order('created_at',{ascending:false}).limit(5),
+      supabaseAdmin.from('profiles').select('created_at').gte('created_at',sinceStr).order('created_at'),
+      supabaseAdmin.from('profiles').select('display_name,full_name,email,created_at').order('created_at',{ascending:false}).limit(5),
       supabaseAdmin.from('sermons').select('title,preacher,date').order('created_at',{ascending:false}).limit(5),
       supabaseAdmin.from('timeline_posts').select('body,created_at,profiles(display_name)').gte('created_at',sinceStr).order('created_at',{ascending:false}).limit(5),
     ])
@@ -163,7 +163,7 @@ export default function AdminAnalytics() {
         {/* Member Growth Chart */}
         <AdminCard>
           <div style={{fontFamily:'var(--font-display)',fontWeight:700,color:'var(--brand-deep)',fontSize:'1rem',marginBottom:4}}>📈 Member Growth</div>
-          <div style={{color:'var(--text-light)',fontSize:'0.78rem',marginBottom:16}}>New approved members — last {range} days</div>
+          <div style={{color:'var(--text-light)',fontSize:'0.78rem',marginBottom:16}}>New members — last {range} days</div>
           {data.growthSeries.every(d=>d.count===0) ? (
             <div style={{textAlign:'center',padding:'24px 0',color:'var(--text-light)',fontSize:'0.85rem'}}>No new members in this period</div>
           ) : (
@@ -202,7 +202,7 @@ export default function AdminAnalytics() {
         {/* Recent Members */}
         <AdminCard>
           <div style={{fontFamily:'var(--font-display)',fontWeight:700,color:'var(--brand-deep)',fontSize:'1rem',marginBottom:4}}>👥 Recent Members</div>
-          <div style={{color:'var(--text-light)',fontSize:'0.78rem',marginBottom:16}}>Latest approved members</div>
+          <div style={{color:'var(--text-light)',fontSize:'0.78rem',marginBottom:16}}>Latest members</div>
           {data.recentMembers.length===0 ? (
             <div style={{textAlign:'center',padding:'24px 0',color:'var(--text-light)',fontSize:'0.85rem'}}>No members yet</div>
           ) : data.recentMembers.map((m,i)=>(
