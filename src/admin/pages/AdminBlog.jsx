@@ -16,20 +16,20 @@ export default function AdminBlog() {
   const [delId, setDelId] = useState(null)
   const [preview, setPreview] = useState(false)
 
-  const load = () => getAll('posts','date').then(({data})=>{ setItems(data); setLoading(false) })
+  const load = () => getAll('blog_posts','date').then(({data})=>{ setItems(data); setLoading(false) })
   useEffect(() => { load() }, [])
 
   const handleSubmit = async e => {
     e.preventDefault(); setSaving(true)
     const { id, ...rest } = form
     const payload = { ...rest, tags: typeof rest.tags==='string' ? rest.tags.split(',').map(t=>t.trim()).filter(Boolean) : rest.tags, date: rest.date||new Date().toISOString().split('T')[0] }
-    const { error } = id ? await update('posts',id,payload) : await insert('posts',payload)
+    const { error } = id ? await update('blog_posts',id,payload) : await insert('blog_posts',payload)
     if (!error) { showToast(id?'Post updated!':'Post published!'); setForm(null); load() }
     else showToast(error.message,'error')
     setSaving(false)
   }
   const handleDelete = async () => {
-    const err = await remove('posts',delId)
+    const err = await remove('blog_posts',delId)
     if (!err) { showToast('Deleted'); setItems(i=>i.filter(x=>x.id!==delId)) }
     else showToast(err.message,'error'); setDelId(null)
   }

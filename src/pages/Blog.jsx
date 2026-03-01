@@ -22,6 +22,32 @@ async function loadPosts() {
   }
 }
 
+
+function renderBody(body) {
+  if (!body) return null
+  return (
+    <div style={{ fontSize:'0.95rem', color:'var(--text-dark)', lineHeight:1.9 }}>
+      {body.split('\n\n').map((para, i) =>
+        para.startsWith('##') ? (
+          <h3 key={i} style={{ fontFamily:'var(--font-display)', color:'var(--brand-deep)', fontSize:'1.15rem', margin:'24px 0 10px', borderBottom:'2px solid var(--brand-pale)', paddingBottom:6 }}>
+            {para.replace(/^##\s*/, '')}
+          </h3>
+        ) : para.startsWith('#') ? (
+          <h4 key={i} style={{ fontFamily:'var(--font-display)', color:'var(--brand-light)', fontSize:'1rem', margin:'18px 0 8px', fontWeight:700 }}>
+            {para.replace(/^#\s*/, '')}
+          </h4>
+        ) : (
+          <p key={i} style={{ marginBottom:16 }}>
+            {para.split('**').map((chunk, j) =>
+              j % 2 === 1 ? <strong key={j} style={{ color:'var(--brand-deep)' }}>{chunk}</strong> : chunk
+            )}
+          </p>
+        )
+      )}
+    </div>
+  )
+}
+
 export default function Blog() {
   const [posts, setPosts]     = useState([])
   const [loading, setLoading] = useState(true)
@@ -114,8 +140,8 @@ export default function Blog() {
                       </button>
                     )}
                     {expanded?.id === featured.id && (
-                      <div style={{ marginTop: 24, fontSize: '0.95rem', color: 'var(--text-dark)', lineHeight: 1.9, whiteSpace: 'pre-line', borderTop: '1px solid #eee', paddingTop: 20 }}>
-                        {featured.body}
+                      <div style={{ marginTop: 24, borderTop: '1px solid #eee', paddingTop: 20 }}>
+                        {renderBody(featured.body)}
                       </div>
                     )}
                   </div>
@@ -161,8 +187,8 @@ export default function Blog() {
                                 {expanded?.id === post.id ? 'Show Less ↑' : 'Read More →'}
                               </button>
                               {expanded?.id === post.id && (
-                                <div style={{ marginTop: 16, fontSize: '0.9rem', color: 'var(--text-dark)', lineHeight: 1.9, whiteSpace: 'pre-line', borderTop: '1px solid #eee', paddingTop: 16 }}>
-                                  {post.body}
+                                <div style={{ marginTop: 16, borderTop: '1px solid #eee', paddingTop: 16 }}>
+                                  {renderBody(post.body)}
                                 </div>
                               )}
                             </>
