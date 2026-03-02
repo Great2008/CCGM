@@ -3,7 +3,7 @@ name: Build Android APK & AAB
 on:
   push:
     branches: [main, master]
-  workflow_dispatch:   # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build-android:
@@ -41,10 +41,9 @@ jobs:
           npm install @capacitor/android
           npm install @capacitor/splash-screen @capacitor/status-bar @capacitor/push-notifications
 
-      # ── 7. Add Android platform (only if not already present) ─────────
+      # ── 7. Add Android platform ───────────────────────────────────────
       - name: Add Android platform
         run: |
-          # Remove all non-JSON Capacitor configs to avoid parsing errors
           rm -f capacitor.config.ts
           rm -f capacitor.config.js
           rm -f capacitor.config.cjs
@@ -52,33 +51,48 @@ jobs:
             npx cap add android
           fi
 
-      # ── 8. Sync Capacitor ─────────────────────────────────────────────
+      # ── 8. Copy app icons into Android mipmap folders ─────────────────
+      - name: Copy app icons
+        run: |
+          MIPMAP=android/app/src/main/res
+          cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher.png
+          cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher_round.png
+          cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher.png
+          cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher_round.png
+          cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher.png
+          cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher_round.png
+          cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher.png
+          cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher_round.png
+          cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher.png
+          cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher_round.png
+
+      # ── 9. Sync Capacitor ─────────────────────────────────────────────
       - name: Sync Capacitor with Android
         run: npx cap sync android
 
-      # ── 9. Setup Java 17 ──────────────────────────────────────────────
+      # ── 10. Setup Java 17 ─────────────────────────────────────────────
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # ── 10. Grant Gradle execute permission ───────────────────────────
+      # ── 11. Grant Gradle execute permission ───────────────────────────
       - name: Grant Gradle permissions
         working-directory: android
         run: chmod +x gradlew
 
-      # ── 11. Build debug APK (unsigned — for testing) ──────────────────
+      # ── 12. Build debug APK (unsigned — for testing) ──────────────────
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      # ── 12. Build release AAB (unsigned — for Play Store) ─────────────
+      # ── 13. Build release AAB (unsigned — for Play Store) ─────────────
       - name: Build release AAB
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
-      # ── 13. Upload APK artifact ───────────────────────────────────────
+      # ── 14. Upload APK artifact ───────────────────────────────────────
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -86,7 +100,7 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      # ── 14. Upload AAB artifact ───────────────────────────────────────
+      # ── 15. Upload AAB artifact ───────────────────────────────────────
       - name: Upload Release AAB
         uses: actions/upload-artifact@v4
         with:
