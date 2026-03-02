@@ -44,6 +44,8 @@ jobs:
       # ── 7. Add Android platform (only if not already present) ─────────
       - name: Add Android platform
         run: |
+          # Remove TS config if present — project has no TypeScript installed
+          rm -f capacitor.config.ts
           if [ ! -d "android" ]; then
             npx cap add android
           fi

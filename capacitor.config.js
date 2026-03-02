@@ -1,21 +1,14 @@
-import { CapacitorConfig } from '@capacitor/cli';
-
-const config: CapacitorConfig = {
+/** @type {import('@capacitor/cli').CapacitorConfig} */
+const config = {
   appId: 'org.ccgworld.app',
   appName: 'CCG World',
   webDir: 'dist',
   bundledWebRuntime: false,
-  server: {
-    // During development, point to your live Vercel URL so the app
-    // always has fresh data. Remove this block for production builds.
-    // url: 'https://your-vercel-url.vercel.app',
-    // cleartext: true,
-  },
   android: {
     backgroundColor: '#0f1f3d',
     allowMixedContent: false,
     captureInput: true,
-    webContentsDebuggingEnabled: false, // set true only during dev
+    webContentsDebuggingEnabled: false,
   },
   ios: {
     backgroundColor: '#0f1f3d',
@@ -34,7 +27,7 @@ const config: CapacitorConfig = {
       splashImmersive: true,
     },
     StatusBar: {
-      style: 'DARK',           // light text on dark background
+      style: 'DARK',
       backgroundColor: '#0f1f3d',
     },
     PushNotifications: {
@@ -42,9 +35,9 @@ const config: CapacitorConfig = {
     },
     LocalNotifications: {
       smallIcon: 'ic_stat_icon_config_sample',
-      iconColor: '#f5a623',   // CCG gold
+      iconColor: '#f5a623',
     },
   },
-};
+}
 
-export default config;
+module.exports = config
