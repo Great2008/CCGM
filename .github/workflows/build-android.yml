@@ -44,9 +44,10 @@ jobs:
       # ── 7. Add Android platform (only if not already present) ─────────
       - name: Add Android platform
         run: |
-          # Remove TS/JS configs — project uses "type":"module" so we need .cjs
+          # Remove all non-JSON Capacitor configs to avoid parsing errors
           rm -f capacitor.config.ts
           rm -f capacitor.config.js
+          rm -f capacitor.config.cjs
           if [ ! -d "android" ]; then
             npx cap add android
           fi
