@@ -59,6 +59,21 @@ jobs:
       - name: Write google-services.json
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+          echo "✅ google-services.json written:"
+          cat android/app/google-services.json | python3 -c "import json,sys; d=json.load(sys.stdin); print('Package:', d['client'][0]['client_info']['android_client_info']['package_name'])"
+
+      # ── Ensure google-services plugin is in build.gradle ─────────────
+      - name: Apply Google Services Gradle plugin
+        run: |
+          # Add google-services to project-level build.gradle if not present
+          if ! grep -q "google-services" android/build.gradle; then
+            sed -i "s/classpath 'com.android.tools.build:gradle/classpath 'com.google.gms:google-services:4.4.0'\n        classpath 'com.android.tools.build:gradle/" android/build.gradle
+          fi
+          # Add apply plugin to app-level build.gradle if not present
+          if ! grep -q "com.google.gms.google-services" android/app/build.gradle; then
+            echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
+          fi
+          echo "✅ Gradle plugin check done"
 
       - name: Sync Capacitor with Android
         run: npx cap sync android
