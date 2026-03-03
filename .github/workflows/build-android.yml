@@ -8,6 +8,8 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create GitHub Releases
 
     steps:
       - name: Checkout repository
@@ -87,16 +89,43 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
-      - name: Upload Debug APK
+      # ── Rename APK with version tag ───────────────────────────────────
+      - name: Prepare release files
+        run: |
+          VERSION="v$(date +'%Y.%m.%d')-$(echo $GITHUB_SHA | cut -c1-7)"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          cp android/app/build/outputs/apk/debug/app-debug.apk CCGWorld-$VERSION.apk
+
+      # ── Upload APK as artifact (always) ──────────────────────────────
+      - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: CCGWorld-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Upload Release AAB
+      - name: Upload Release AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: CCGWorld-release.aab
           path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
+
+      # ── Create/update GitHub Release with public APK download ─────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: CCG World — Latest Build
+          body: |
+            ## CCG World Android App
+            
+            📱 **Download the APK below and install on your Android phone.**
+            
+            > Enable "Install from unknown sources" in your phone settings before installing.
+            
+            Built from commit: ${{ github.sha }}
+            Date: ${{ github.event.head_commit.timestamp }}
+          files: CCGWorld-${{ env.VERSION }}.apk
+          make_latest: true
+          prerelease: false
