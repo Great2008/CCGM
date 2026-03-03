@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
-import { useHaptics, useNativeShare } from '../hooks/useMobileFeatures'
+import { useHaptics, useNativeShare } from '../hooks/useMobileFeatures.jsx'
 
 function timeAgo(ts) {
   const s = Math.floor((Date.now() - new Date(ts)) / 1000)
