@@ -102,36 +102,26 @@ export function useNetworkStatus() {
 }
 
 // ─── Keep Screen Awake (for Live stream) ────────────────────────────────────
-// Usage: const { keepAwake, allowSleep } = useScreenAwake()
-//        keepAwake()   → prevent screen from sleeping
-//        allowSleep()  → release the lock
+// Uses the Web Screen Wake Lock API — works in Capacitor WebView on Android & iOS
+// No external plugin needed.
 export function useScreenAwake() {
   const keepAwake = useCallback(async () => {
     try {
-      const { KeepAwake } = await import('@capacitor-community/keep-awake')
-      await KeepAwake.keepAwake()
-    } catch {
-      // Fallback: Web Screen Wake Lock API
-      try {
-        if ('wakeLock' in navigator) {
-          window._wakeLock = await navigator.wakeLock.request('screen')
-        }
-      } catch {}
+      if ('wakeLock' in navigator) {
+        window._wakeLock = await navigator.wakeLock.request('screen')
+      }
+    } catch (err) {
+      console.warn('Wake lock failed:', err)
     }
   }, [])
 
   const allowSleep = useCallback(async () => {
     try {
-      const { KeepAwake } = await import('@capacitor-community/keep-awake')
-      await KeepAwake.allowSleep()
-    } catch {
-      try {
-        if (window._wakeLock) {
-          await window._wakeLock.release()
-          window._wakeLock = null
-        }
-      } catch {}
-    }
+      if (window._wakeLock) {
+        await window._wakeLock.release()
+        window._wakeLock = null
+      }
+    } catch {}
   }, [])
 
   return { keepAwake, allowSleep }

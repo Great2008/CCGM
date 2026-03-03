@@ -36,7 +36,6 @@ jobs:
           npm install @capacitor/splash-screen @capacitor/status-bar
           npm install @capacitor/push-notifications @capacitor/haptics
           npm install @capacitor/share @capacitor/network
-          npm install @capacitor-community/keep-awake
 
       - name: Add Android platform
         run: |
