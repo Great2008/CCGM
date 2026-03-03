@@ -89,12 +89,13 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
-      # ── Rename APK with version tag ───────────────────────────────────
+      # ── Rename APK with consistent name for permanent URL ────────────
       - name: Prepare release files
         run: |
           VERSION="v$(date +'%Y.%m.%d')-$(echo $GITHUB_SHA | cut -c1-7)"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          cp android/app/build/outputs/apk/debug/app-debug.apk CCGWorld-$VERSION.apk
+          # Always copy as CCGWorld-latest.apk so the download URL never changes
+          cp android/app/build/outputs/apk/debug/app-debug.apk CCGWorld-latest.apk
 
       # ── Upload APK as artifact (always) ──────────────────────────────
       - name: Upload Debug APK artifact
@@ -126,6 +127,6 @@ jobs:
             
             Built from commit: ${{ github.sha }}
             Date: ${{ github.event.head_commit.timestamp }}
-          files: CCGWorld-${{ env.VERSION }}.apk
+          files: CCGWorld-latest.apk
           make_latest: true
           prerelease: false
