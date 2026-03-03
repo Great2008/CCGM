@@ -33,7 +33,10 @@ jobs:
         run: |
           npm install @capacitor/core @capacitor/cli
           npm install @capacitor/android
-          npm install @capacitor/splash-screen @capacitor/status-bar @capacitor/push-notifications
+          npm install @capacitor/splash-screen @capacitor/status-bar
+          npm install @capacitor/push-notifications @capacitor/haptics
+          npm install @capacitor/share @capacitor/network
+          npm install @capacitor-community/keep-awake
 
       - name: Add Android platform
         run: |
@@ -66,8 +69,6 @@ jobs:
           cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher.png
           cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher_round.png
           cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher_foreground.png
-          echo "Icons copied successfully"
-          ls $MIPMAP/mipmap-xxxhdpi/
 
       - name: Setup Java 17
         uses: actions/setup-java@v4

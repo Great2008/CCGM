@@ -99,145 +99,123 @@ export default function Navbar() {
         <div style={{maxWidth:1160,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',height:66}}>
 
           {/* Logo */}
-          <Link to="/" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none',flexShrink:0}}>
-            <img src="/logo.png" alt="CCG World" style={{width:46,height:46,objectFit:'contain',flexShrink:0,filter:'drop-shadow(0 2px 6px rgba(0,0,0,0.3))'}} />
+          <Link to="/" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none'}}>
+            <img src="/logo.png" alt="CCG World" style={{width:36,height:36,objectFit:'contain',borderRadius:8}} />
             <div>
-              <span style={{color:'white',fontFamily:'var(--font-display)',fontWeight:900,fontSize:'clamp(0.82rem,1.6vw,0.98rem)',lineHeight:1.1,display:'block'}}>CCG <span style={{color:'var(--gold)'}}>World</span></span>
-              <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.55rem',letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>Christian Church Of God Mission</span>
+              <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1rem',color:'white',lineHeight:1.1}}>
+                CCG <span style={{color:'var(--gold)'}}>World</span>
+              </div>
+              <div style={{fontSize:'0.55rem',color:'rgba(255,255,255,0.45)',letterSpacing:'0.15em',textTransform:'uppercase'}}>Christian Church Of God</div>
             </div>
           </Link>
 
           {/* Desktop nav */}
           <div className="desktop-nav" style={{display:'flex',alignItems:'center',gap:2}}>
-            {NAV_LINKS.map(({to,label})=>(
+            {NAV_LINKS.map(({to,label}) => (
               <Link key={to} to={to} style={{
                 color: pathname===to ? 'var(--gold)' : 'rgba(255,255,255,0.82)',
                 fontWeight: pathname===to ? 700 : 500,
                 fontSize:'0.82rem', padding:'6px 10px', borderRadius:6,
-                textDecoration:'none', transition:'color 0.2s', whiteSpace:'nowrap',
-              }}
-              onMouseEnter={e=>{if(pathname!==to)e.target.style.color='white'}}
-              onMouseLeave={e=>{if(pathname!==to)e.target.style.color='rgba(255,255,255,0.82)'}}>
-                {label}
-              </Link>
+                textDecoration:'none', transition:'color 0.2s',
+              }}>{label}</Link>
             ))}
-
-            {/* Live link */}
             <LiveLink />
 
             {/* Offline dropdown */}
             <div style={{position:'relative'}}>
               <button onClick={()=>setOfflineOpen(o=>!o)} style={{
-                color:'rgba(255,255,255,0.82)',fontSize:'0.82rem',padding:'6px 10px',
-                borderRadius:6,background:'transparent',border:'none',cursor:'pointer',
-                display:'flex',alignItems:'center',gap:4,fontFamily:'var(--font-body)',whiteSpace:'nowrap',
-              }}>📴 Offline <span style={{fontSize:'0.55rem',opacity:0.6}}>{offlineOpen?'▲':'▼'}</span></button>
-              {offlineOpen&&(
-                <div style={{position:'absolute',top:'calc(100% + 8px)',right:0,background:'white',borderRadius:12,padding:8,boxShadow:'0 12px 40px rgba(0,0,0,0.18)',minWidth:210,border:'1px solid rgba(0,0,0,0.06)',zIndex:200}}>
+                display:'flex',alignItems:'center',gap:5,
+                color:'rgba(255,255,255,0.82)',background:'none',border:'1px solid rgba(255,255,255,0.18)',
+                borderRadius:20,padding:'5px 12px',cursor:'pointer',fontSize:'0.78rem',fontFamily:'var(--font-body)',
+              }}>📴 Offline {offlineOpen?'▲':'▼'}</button>
+              {offlineOpen && (
+                <div style={{position:'absolute',top:'calc(100%+8px)',right:0,background:'white',borderRadius:12,boxShadow:'0 12px 40px rgba(0,0,0,0.18)',minWidth:200,overflow:'hidden',zIndex:500}}>
                   {OFFLINE_LINKS.map(({to,label,sub})=>(
-                    <Link key={to} to={to} style={{display:'block',padding:'10px 14px',borderRadius:8,textDecoration:'none',transition:'background 0.15s'}}
-                    onMouseEnter={e=>e.currentTarget.style.background='var(--brand-pale)'}
-                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                      <div style={{color:'var(--brand-deep)',fontWeight:700,fontSize:'0.86rem'}}>{label}</div>
-                      <div style={{color:'var(--text-light)',fontSize:'0.7rem',marginTop:1}}>{sub} · <span style={{color:'var(--brand-light)',fontWeight:700}}>✅ Offline</span></div>
+                    <Link key={to} to={to} style={{display:'flex',flexDirection:'column',padding:'12px 18px',textDecoration:'none',borderBottom:'1px solid #f1f5f9',transition:'background 0.15s'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='#f8faff'}
+                      onMouseLeave={e=>e.currentTarget.style.background='white'}>
+                      <span style={{fontWeight:700,color:'var(--brand-deep)',fontSize:'0.85rem'}}>{label}</span>
+                      <span style={{fontSize:'0.72rem',color:'var(--text-light)',marginTop:2}}>{sub}</span>
                     </Link>
                   ))}
                 </div>
               )}
             </div>
+          </div>
 
-            
-
+          {/* Right side */}
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
             {/* Notifications bell */}
-            <Link to="/notifications"
-              onClick={() => { localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString()); setUnread(0) }}
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', marginLeft: 4, flexShrink: 0, textDecoration: 'none', transition: 'background 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.16)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-              title="Notifications"
-            >
-              <span style={{ fontSize: '1rem' }}>🔔</span>
+            <Link to="/notifications" onClick={()=>localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString())}
+              style={{position:'relative',color:'rgba(255,255,255,0.7)',fontSize:'1.2rem',textDecoration:'none',padding:'4px',display:'flex'}}>
+              🔔
               {unread > 0 && (
-                <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: '#ef4444', color: 'white', fontSize: '0.62rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '2px solid rgba(15,31,61,0.97)' }}>
+                <span style={{position:'absolute',top:-2,right:-2,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'white',fontSize:'0.55rem',fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center'}}>
                   {unread > 9 ? '9+' : unread}
                 </span>
               )}
             </Link>
 
-            {/* Auth */}
+            {/* User avatar or sign-in */}
             {user ? (
-              <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:6}}>
-                <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,var(--brand-light),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:900,fontSize:'0.9rem',flexShrink:0}}>
-                  {profile?.avatar_url ? <img src={profile.avatar_url} alt="" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} /> : initials}
-                </div>
-                <button onClick={signOut} style={{color:'rgba(255,255,255,0.5)',background:'none',border:'none',cursor:'pointer',fontSize:'0.75rem',fontFamily:'var(--font-body)'}}>Sign out</button>
+              <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,var(--gold),#f97316)',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:900,fontSize:'0.85rem',cursor:'pointer',flexShrink:0}}>
+                {initials}
               </div>
             ) : (
-              <Link to="/timeline" className="btn btn-gold" style={{padding:'7px 18px',fontSize:'0.78rem',marginLeft:6}}>Sign In</Link>
+              <Link to="/timeline" className="btn btn-gold" style={{padding:'7px 16px',fontSize:'0.78rem'}}>Sign In</Link>
             )}
-          </div>
 
-          {/* Hamburger */}
-          <button className="hamburger" onClick={()=>setMenuOpen(o=>!o)}
-            style={{display:'none',flexDirection:'column',gap:5,background:'none',border:'none',cursor:'pointer',padding:6}}
-            aria-label="Menu">
-            {[0,1,2].map(i=>(
-              <span key={i} style={{
-                display:'block',width:24,height:2.5,background:'white',borderRadius:2,
-                transform: menuOpen ? (i===0?'translateY(7.5px) rotate(45deg)':i===2?'translateY(-7.5px) rotate(-45deg)':'scaleX(0)') : 'none',
-                opacity: menuOpen&&i===1?0:1,
-                transition:'transform 0.28s,opacity 0.2s',
-              }} />
-            ))}
-          </button>
+            {/* Hamburger */}
+            <button className="hamburger" onClick={()=>setMenuOpen(o=>!o)} style={{
+              display:'none',flexDirection:'column',gap:5,background:'none',border:'none',
+              cursor:'pointer',padding:4,
+            }}>
+              {[0,1,2].map(i=>(
+                <span key={i} style={{display:'block',width:22,height:2,background:'white',borderRadius:2,
+                  transition:'all 0.3s',
+                  transform: menuOpen && i===0 ? 'translateY(7px) rotate(45deg)' : menuOpen && i===2 ? 'translateY(-7px) rotate(-45deg)' : menuOpen && i===1 ? 'scaleX(0)' : 'none',
+                }} />
+              ))}
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* Mobile overlay */}
-      <div style={{position:'fixed',inset:0,zIndex:999,background:'rgba(0,0,0,0.5)',opacity:menuOpen?1:0,pointerEvents:menuOpen?'all':'none',transition:'opacity 0.28s'}} onClick={()=>setMenuOpen(false)} />
-
       {/* Mobile drawer */}
       <div style={{
-        position:'fixed',top:0,right:0,bottom:0,zIndex:1000,
-        width:'min(300px,85vw)',background:'var(--brand-deep)',
-        transform:menuOpen?'translateX(0)':'translateX(100%)',
-        transition:'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
-        display:'flex',flexDirection:'column',
-        boxShadow:'-8px 0 40px rgba(0,0,0,0.3)',overflowY:'auto',
+        position:'fixed',top:66,left:0,right:0,bottom:0,
+        background:'rgba(10,20,48,0.98)',backdropFilter:'blur(16px)',
+        zIndex:999,overflowY:'auto',
+        transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition:'transform 0.32s cubic-bezier(0.4,0,0.2,1)',
       }}>
-        <div style={{padding:'22px 20px 18px',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div style={{display:'flex',alignItems:'center',gap:10}}>
-            <img src="/logo.png" alt="CCG World" style={{width:36,height:36,objectFit:'contain',filter:'drop-shadow(0 1px 4px rgba(0,0,0,0.3))'}} />
-            <div style={{color:'white',fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1rem'}}>CCG <span style={{color:'var(--gold)'}}>World</span></div>
-          </div>
-          <button onClick={()=>setMenuOpen(false)} style={{color:'rgba(255,255,255,0.6)',background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',lineHeight:1}}>✕</button>
-        </div>
-        <nav style={{padding:'10px 0',flex:1}}>
+        <nav style={{padding:'10px 0'}}>
           {NAV_LINKS.map(({to,label})=>(
             <Link key={to} to={to} style={{
               display:'block',padding:'12px 22px',
-              color:pathname===to?'var(--gold)':'rgba(255,255,255,0.82)',
-              fontWeight:pathname===to?700:400,fontSize:'0.95rem',textDecoration:'none',
-              borderLeft:pathname===to?'3px solid var(--gold)':'3px solid transparent',
-              transition:'all 0.2s',
+              color: pathname===to ? 'var(--gold)' : 'rgba(255,255,255,0.82)',
+              fontWeight: pathname===to ? 700 : 400,
+              fontSize:'0.95rem', textDecoration:'none',
+              borderLeft: pathname===to ? '3px solid var(--gold)' : '3px solid transparent',
+              transition:'all 0.15s',
             }}>{label}</Link>
           ))}
-          {/* Live in mobile */}
           <LiveLink mobile />
-          <Link to="/notifications"
-            onClick={() => { localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString()); setUnread(0) }}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 22px', color: pathname === '/notifications' ? 'var(--gold)' : 'rgba(255,255,255,0.82)', fontWeight: pathname === '/notifications' ? 700 : 400, fontSize: '0.95rem', textDecoration: 'none', borderLeft: pathname === '/notifications' ? '3px solid var(--gold)' : '3px solid transparent' }}>
-            <span>🔔 Notifications</span>
-            {unread > 0 && <span style={{ background: '#ef4444', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: '0.7rem', fontWeight: 900 }}>{unread}</span>}
-          </Link>
-          <div style={{margin:'12px 20px 6px',fontSize:'0.65rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)'}}>Offline Resources</div>
+
+          <div style={{padding:'14px 22px 6px',fontSize:'0.65rem',fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)'}}>OFFLINE ACCESS</div>
           {OFFLINE_LINKS.map(({to,label,sub})=>(
-            <Link key={to} to={to} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 22px',color:'rgba(255,255,255,0.75)',fontSize:'0.9rem',textDecoration:'none'}}>
+            <Link key={to} to={to} style={{
+              display:'flex',flexDirection:'column',padding:'10px 22px',
+              color:'rgba(255,255,255,0.75)',fontSize:'0.88rem',textDecoration:'none',
+              borderLeft:'3px solid transparent',
+            }}>
               <span>{label}</span>
-              <span style={{fontSize:'0.62rem',color:'var(--brand-glow)',fontWeight:700}}>✅ Offline</span>
+              <span style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.35)',marginTop:1}}>{sub}</span>
             </Link>
           ))}
         </nav>
+
+        {/* Bottom — user section, NO admin link */}
         <div style={{padding:'16px 20px 32px',borderTop:'1px solid rgba(255,255,255,0.08)'}}>
           {user ? (
             <div>
@@ -247,7 +225,7 @@ export default function Navbar() {
           ) : (
             <Link to="/timeline" className="btn btn-gold" style={{width:'100%',justifyContent:'center',padding:'12px'}}>🌐 Join Community</Link>
           )}
-          <Link to="/admin" style={{display:'block',textAlign:'center',marginTop:12,color:'rgba(255,255,255,0.25)',fontSize:'0.7rem'}}>Admin Panel</Link>
+          {/* Admin link intentionally removed for mobile app */}
         </div>
       </div>
 

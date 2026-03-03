@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import supabase from '../lib/supabase'
+import { useScreenAwake, useNativeShare, useHaptics } from '../hooks/useMobileFeatures'
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 
@@ -9,7 +10,6 @@ function pad(n) { return String(n).padStart(2,'0') }
 function parseEventDate(dateStr, timeStr) {
   if (!dateStr) return new Date()
   if (!timeStr) return new Date(dateStr + 'T00:00:00')
-  // Parse "9:00 AM" / "10:30 PM" style times
   const match = timeStr.match(/^(\d{1,2}):?(\d{0,2})\s*(AM|PM)?$/i)
   if (!match) return new Date(dateStr + 'T00:00:00')
   let h = parseInt(match[1])
@@ -31,7 +31,6 @@ function Countdown({ target }) {
     return () => clearInterval(id)
   }, [target])
 
-  // If NaN (bad date), show nothing
   if (isNaN(getT().getTime())) return null
 
   const totalSecs = Math.floor(diff / 1000)
@@ -62,7 +61,6 @@ function getNextService(schedule) {
   const today = now.getDay()
   const nowMins = now.getHours() * 60 + now.getMinutes()
 
-  // Try to find next occurrence within the week
   for (let offset = 0; offset < 8; offset++) {
     const dayIdx = (today + offset) % 7
     const matches = schedule.filter(s => DAYS.indexOf(s.day) === dayIdx && s.time)
@@ -89,13 +87,7 @@ function SimpleCountdown({ target }) {
     const ms = target - Date.now()
     if (ms <= 0) return { d:0, h:0, m:0, s:0, done:true }
     const total = Math.floor(ms / 1000)
-    return {
-      d: Math.floor(total / 86400),
-      h: Math.floor((total % 86400) / 3600),
-      m: Math.floor((total % 3600) / 60),
-      s: total % 60,
-      done: false
-    }
+    return { d: Math.floor(total / 86400), h: Math.floor((total % 86400) / 3600), m: Math.floor((total % 3600) / 60), s: total % 60, done: false }
   }
   const [t, setT] = useState(calc)
   useEffect(() => {
@@ -109,12 +101,7 @@ function SimpleCountdown({ target }) {
 
   const BOX = ({val, label}) => (
     <div style={{textAlign:'center'}}>
-      <div style={{
-        background:'var(--brand-deep)', color:'white',
-        borderRadius:10, padding:'10px 14px',
-        fontFamily:'var(--font-display)', fontSize:'1.8rem', fontWeight:900,
-        minWidth:56, lineHeight:1
-      }}>{String(val).padStart(2,'0')}</div>
+      <div style={{background:'var(--brand-deep)',color:'white',borderRadius:10,padding:'10px 14px',fontFamily:'var(--font-display)',fontSize:'1.8rem',fontWeight:900,minWidth:56,lineHeight:1}}>{String(val).padStart(2,'0')}</div>
       <div style={{fontSize:'0.65rem',color:'#94a3b8',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:5}}>{label}</div>
     </div>
   )
@@ -133,19 +120,20 @@ function SimpleCountdown({ target }) {
 }
 
 export default function Live() {
-  const [settings, setSettings] = useState(null)
-  const [loading, setLoading]   = useState(true)
+  const [settings, setSettings]   = useState(null)
+  const [loading, setLoading]     = useState(true)
   const [activeTab, setActiveTab] = useState('youtube')
+  const [awake, setAwake]         = useState(false)
+
+  const { keepAwake, allowSleep } = useScreenAwake()
+  const { share }  = useNativeShare()
+  const { impact } = useHaptics()
 
   useEffect(() => {
     supabase.from('site_settings').select('value').eq('key','live').single()
-      .then(({ data }) => {
-        setSettings(data?.value || null)
-        setLoading(false)
-      })
+      .then(({ data }) => { setSettings(data?.value || null); setLoading(false) })
   }, [])
 
-  // Realtime — admin toggling live status reflects instantly
   useEffect(() => {
     const sub = supabase.channel('live-settings')
       .on('postgres_changes', { event:'UPDATE', schema:'public', table:'site_settings', filter:'key=eq.live' },
@@ -153,6 +141,39 @@ export default function Live() {
       .subscribe()
     return () => supabase.removeChannel(sub)
   }, [])
+
+  // Auto-enable screen wake when live
+  useEffect(() => {
+    if (settings?.isLive) {
+      keepAwake()
+      setAwake(true)
+    } else {
+      allowSleep()
+      setAwake(false)
+    }
+    return () => allowSleep()
+  }, [settings?.isLive])
+
+  const toggleAwake = async () => {
+    await impact('LIGHT')
+    if (awake) {
+      await allowSleep()
+      setAwake(false)
+    } else {
+      await keepAwake()
+      setAwake(true)
+    }
+  }
+
+  const handleShare = async () => {
+    await impact('LIGHT')
+    await share({
+      title: 'CCG World — Live Service',
+      text: 'Join us for the live service on CCG World!',
+      url: 'https://ccgworld.org/live',
+      dialogTitle: 'Share Live Stream',
+    })
+  }
 
   const isLive      = settings?.isLive
   const ytUrl       = settings?.youtubeUrl || ''
@@ -165,11 +186,8 @@ export default function Live() {
   const hasYT = !!ytUrl
   const hasFB = !!fbUrl
 
-  // Extract YouTube embed ID
-  const ytId = ytUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([^?&\s]+)/)?.[1]
+  const ytId    = ytUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([^?&\s]+)/)?.[1]
   const ytEmbed = ytId ? `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0` : null
-
-  // Facebook embed URL
   const fbEmbed = fbUrl ? `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fbUrl)}&width=800&show_text=false&autoplay=true` : null
 
   if (loading) return (
@@ -205,9 +223,35 @@ export default function Live() {
             <p style={{color:'rgba(255,255,255,0.7)',fontSize:'1rem',margin:'0 auto 24px',lineHeight:1.7,maxWidth:560}}>{description}</p>
           )}
 
-          {/* Tab switcher — only if both platforms active */}
+          {/* Mobile controls — screen awake toggle + share */}
+          {isLive && (
+            <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:16,flexWrap:'wrap'}}>
+              <button onClick={toggleAwake} style={{
+                display:'flex',alignItems:'center',gap:6,
+                padding:'8px 18px',borderRadius:30,
+                background: awake ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.12)',
+                border: awake ? '1.5px solid var(--gold)' : '1.5px solid rgba(255,255,255,0.2)',
+                color: awake ? 'var(--gold)' : 'rgba(255,255,255,0.8)',
+                fontWeight:700,fontSize:'0.78rem',cursor:'pointer',fontFamily:'var(--font-body)',
+              }}>
+                {awake ? '☀️ Screen On' : '📱 Keep Screen On'}
+              </button>
+              <button onClick={handleShare} style={{
+                display:'flex',alignItems:'center',gap:6,
+                padding:'8px 18px',borderRadius:30,
+                background:'rgba(255,255,255,0.12)',
+                border:'1.5px solid rgba(255,255,255,0.2)',
+                color:'rgba(255,255,255,0.8)',
+                fontWeight:700,fontSize:'0.78rem',cursor:'pointer',fontFamily:'var(--font-body)',
+              }}>
+                📤 Share Stream
+              </button>
+            </div>
+          )}
+
+          {/* Tab switcher */}
           {isLive && hasYT && hasFB && (
-            <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:24}}>
+            <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:16}}>
               {[['youtube','▶ YouTube'],['facebook','📘 Facebook']].map(([id,label])=>(
                 <button key={id} onClick={()=>setActiveTab(id)} style={{
                   padding:'9px 24px',borderRadius:30,border:'1.5px solid',
@@ -229,18 +273,15 @@ export default function Live() {
         {isLive && (hasYT || hasFB) && (
           <div style={{marginBottom:40}}>
             <div style={{position:'relative',paddingBottom:'56.25%',height:0,borderRadius:16,overflow:'hidden',boxShadow:'0 24px 64px rgba(0,0,0,0.3)',border:'2px solid #dc2626'}}>
-              {/* YouTube */}
               {(activeTab==='youtube'||!hasFB) && ytEmbed && (
                 <iframe src={ytEmbed} title="Live Stream" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowFullScreen
                   style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} />
               )}
-              {/* Facebook */}
               {(activeTab==='facebook'||!hasYT) && fbEmbed && (
                 <iframe src={fbEmbed} title="Live Stream - Facebook" allow="autoplay;clipboard-write;encrypted-media;picture-in-picture;web-share" allowFullScreen
                   style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} />
               )}
             </div>
-            {/* Direct links */}
             <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:16,flexWrap:'wrap'}}>
               {ytUrl && <a href={ytUrl} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:6,padding:'8px 20px',borderRadius:30,background:'#ff0000',color:'white',fontWeight:700,fontSize:'0.82rem',textDecoration:'none'}}>▶ Watch on YouTube</a>}
               {fbUrl && <a href={fbUrl} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:6,padding:'8px 20px',borderRadius:30,background:'#1877f2',color:'white',fontWeight:700,fontSize:'0.82rem',textDecoration:'none'}}>📘 Watch on Facebook</a>}
@@ -261,7 +302,6 @@ export default function Live() {
                 Join us for our next live service. We broadcast our Divine Service and other programs directly to you.
               </p>
 
-              {/* Countdown to next service */}
               {nextService && (
                 <div style={{marginBottom:32}}>
                   <p style={{color:'var(--gold)',fontWeight:700,fontSize:'0.82rem',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:16}}>
@@ -272,8 +312,7 @@ export default function Live() {
               )}
 
               <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-                {ytUrl && <a href={`https://www.youtube.com/@${ytUrl.includes('@')?ytUrl.split('@')[1].split('/')[0]:''}`} target="_blank" rel="noreferrer" className="btn btn-gold">▶ Subscribe on YouTube</a>}
-                {fbUrl && <a href={fbUrl.split('/videos')[0]} target="_blank" rel="noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'13px 32px',borderRadius:40,background:'#1877f2',color:'white',fontWeight:700,fontSize:'0.88rem',textDecoration:'none'}}>📘 Follow on Facebook</a>}
+                {ytUrl && <a href={ytUrl} target="_blank" rel="noreferrer" className="btn btn-gold">▶ Subscribe on YouTube</a>}
                 <Link to="/sermons" className="btn btn-outline-white" style={{border:'1.5px solid rgba(255,255,255,0.3)',color:'white'}}>Watch Past Sermons</Link>
               </div>
             </div>
@@ -303,39 +342,6 @@ export default function Live() {
           </div>
         )}
 
-        {/* SPECIAL EVENTS */}
-        {(settings?.specialEvents||[]).filter(e=>e.title&&e.date).length > 0 && (
-          <div style={{marginBottom:40}}>
-            <h2 style={{fontFamily:'var(--font-display)',color:'var(--brand-deep)',fontSize:'1.6rem',marginBottom:6}}>🎊 Upcoming Special Events</h2>
-            <p style={{color:'var(--text-light)',fontSize:'0.88rem',marginBottom:24}}>Mark your calendar — these will be broadcast live</p>
-            <div style={{display:'flex',flexDirection:'column',gap:14}}>
-              {(settings.specialEvents||[]).filter(e=>e.title&&e.date&&new Date(e.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).map((ev,i)=>{
-                const target = parseEventDate(ev.date, ev.time)
-                const isPast = target < new Date()
-                return (
-                  <div key={i} style={{background:'white',borderRadius:16,padding:'22px 24px',boxShadow:'var(--shadow-sm)',border:'1.5px solid #e2e8f0'}}>
-                    {/* Header row */}
-                    <div style={{display:'flex',gap:14,alignItems:'flex-start',marginBottom:ev.broadcast!==false&&!isPast?20:0}}>
-                      <div style={{fontSize:'2.2rem',flexShrink:0,lineHeight:1}}>{ev.icon||'🎊'}</div>
-                      <div style={{flex:1}}>
-                        <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:'1.15rem',color:'var(--brand-deep)',marginBottom:4}}>{ev.title}</div>
-                        <div style={{fontSize:'0.82rem',color:'var(--brand-light)',fontWeight:700,marginBottom:ev.description?8:0}}>
-                          📅 {new Date(ev.date).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}{ev.time&&` · 🕐 ${ev.time}`}
-                        </div>
-                        {ev.description&&<div style={{fontSize:'0.88rem',color:'var(--text-mid)',lineHeight:1.7}}>{ev.description}</div>}
-                      </div>
-                    </div>
-                    {/* Countdown — always full width below */}
-                    {ev.broadcast!==false&&!isPast&&(
-                      <SimpleCountdown target={target} />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
         {/* HOW TO WATCH */}
         <div style={{background:'var(--brand-pale)',borderRadius:16,padding:'28px 28px'}}>
           <h3 style={{fontFamily:'var(--font-display)',color:'var(--brand-deep)',fontSize:'1.2rem',margin:'0 0 16px'}}>📱 How to Watch</h3>
@@ -343,7 +349,7 @@ export default function Live() {
             {[
               ['▶','YouTube','Subscribe to our channel and tap the bell 🔔 to get notified when we go live.'],
               ['📘','Facebook','Follow our page and turn on notifications to never miss a service.'],
-              ['📱','Mobile','Watch right here on any device — phone, tablet or computer.'],
+              ['📱','This App','Watch right here — your screen will stay on automatically during live services.'],
             ].map(([icon,title,desc])=>(
               <div key={title} style={{display:'flex',gap:12,alignItems:'flex-start'}}>
                 <div style={{width:36,height:36,borderRadius:10,background:'white',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',flexShrink:0,boxShadow:'var(--shadow-sm)'}}>{icon}</div>
