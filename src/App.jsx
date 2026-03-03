@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar       from './components/Navbar'
 import Footer       from './components/Footer'
 import { OfflineBanner } from './hooks/useMobileFeatures.jsx'
+import UpdatePrompt from './components/UpdatePrompt'
 import Home         from './pages/Home'
 import Sermons      from './pages/Sermons'
 import Events       from './pages/Events'
@@ -49,6 +50,7 @@ function AppInner() {
       <Footer />
       <PushPrompt user={user} />
       <OfflineBanner />
+      <UpdatePrompt />
     </>
   )
 }

@@ -28,6 +28,13 @@ jobs:
           echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env
           echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> .env
 
+      - name: Set build version
+        run: |
+          VERSION="$(date +'%Y.%m.%d')-$(echo $GITHUB_SHA | cut -c1-7)"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "{ \"version\": \"$VERSION\", \"buildDate\": \"$(date +'%Y-%m-%d')\" }" > public/version.json
+          echo "Version set to $VERSION"
+
       - name: Build Vite app
         run: npm run build
 
@@ -92,9 +99,6 @@ jobs:
       # ── Rename APK with consistent name for permanent URL ────────────
       - name: Prepare release files
         run: |
-          VERSION="v$(date +'%Y.%m.%d')-$(echo $GITHUB_SHA | cut -c1-7)"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          # Always copy as CCGWorld-latest.apk so the download URL never changes
           cp android/app/build/outputs/apk/debug/app-debug.apk CCGWorld-latest.apk
 
       # ── Upload APK as artifact (always) ──────────────────────────────
@@ -119,7 +123,7 @@ jobs:
           tag_name: latest
           name: CCG World — Latest Build
           body: |
-            ## CCG World Android App
+            ## CCG World Android App — ${{ env.VERSION }}
             
             📱 **Download the APK below and install on your Android phone.**
             
