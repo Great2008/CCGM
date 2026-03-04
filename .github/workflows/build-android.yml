@@ -113,6 +113,30 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      # ── Generate or restore keystore ─────────────────────────────────
+      - name: Setup keystore
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            # Restore existing keystore from secret
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ccgworld.keystore
+            echo "✅ Keystore restored from secret"
+          else
+            # First run — generate a new keystore automatically
+            keytool -genkey -v \
+              -keystore ccgworld.keystore \
+              -alias ccgworld \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=CCG World, OU=App, O=CCGM, L=Unknown, S=Unknown, C=NG" \
+              -storepass ccgworld2024 \
+              -keypass ccgworld2024
+            echo "✅ New keystore generated"
+            # Print base64 so you can copy it into secrets
+            echo "⚠️  SAVE THIS AS KEYSTORE_BASE64 SECRET:"
+            base64 ccgworld.keystore
+          fi
+
       - name: Build release AAB
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
@@ -120,23 +144,29 @@ jobs:
       # ── Sign the release APK ──────────────────────────────────────────
       - name: Sign release APK
         run: |
-          # Decode keystore from secret
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ccgworld.keystore
+          STORE_PASS="${{ secrets.KEYSTORE_PASSWORD }}"
+          KEY_PASS="${{ secrets.KEY_PASSWORD }}"
+          KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
+          # Use defaults if secrets not set yet
+          [ -z "$STORE_PASS" ] && STORE_PASS="ccgworld2024"
+          [ -z "$KEY_PASS" ]   && KEY_PASS="ccgworld2024"
+          [ -z "$KEY_ALIAS" ]  && KEY_ALIAS="ccgworld"
           # Build signed release APK
           cd android && ./gradlew assembleRelease --no-daemon
-          # Sign it
+          # Sign
           jarsigner -verbose \
             -keystore ../ccgworld.keystore \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            -storepass "$STORE_PASS" \
+            -keypass "$KEY_PASS" \
             -signedjar ../CCGWorld-signed.apk \
             app/build/outputs/apk/release/app-release-unsigned.apk \
-            "${{ secrets.KEY_ALIAS }}"
+            "$KEY_ALIAS"
           cd ..
           # Align
           $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/zipalign \
             -v 4 CCGWorld-signed.apk CCGWorld-latest.apk || \
             cp CCGWorld-signed.apk CCGWorld-latest.apk
+          echo "✅ Signed APK ready"
 
       # ── Rename APK with consistent name for permanent URL ────────────
       - name: Prepare release files
