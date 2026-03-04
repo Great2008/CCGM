@@ -195,3 +195,4 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
   .hero-ctas a { width: 100%; max-width: 280px; justify-content: center !important; }
 }
 
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
