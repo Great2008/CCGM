@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 
 const GITHUB_REPO    = 'Great2008/CCGM'
 const RELEASES_API   = `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/latest`
-const APK_DOWNLOAD   = `https://github.com/${GITHUB_REPO}/releases/download/latest/CCGWorld-latest.apk`
+const APK_DOWNLOAD   = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/apk/CCGWorld-latest.apk`
 const VERSION_FILE   = '/version.json'
 const SNOOZE_KEY     = 'ccg-update-snoozed'
 const SNOOZE_HOURS   = 24  // remind again after 24 hours
