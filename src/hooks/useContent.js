@@ -67,23 +67,25 @@ export function useHomepageContent() {
   return { data, loading }
 }
 
-export function useSermonsContent() {
+export function useSermonsContent(refreshKey = 0) {
   const [data, setData]     = useState([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
+    setLoading(true)
     supabase.from('sermons').select('*').eq('published', true).order('date', { ascending: false })
       .then(({ data: d }) => { setData(d||[]); setLoading(false) })
-  }, [])
+  }, [refreshKey])
   return { data, loading }
 }
 
-export function useEventsContent() {
+export function useEventsContent(refreshKey = 0) {
   const [data, setData]     = useState([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
+    setLoading(true)
     supabase.from('events').select('*').eq('published', true).order('date', { ascending: true })
       .then(({ data: d }) => { setData(d||[]); setLoading(false) })
-  }, [])
+  }, [refreshKey])
   return { data, loading }
 }
 
