@@ -113,7 +113,16 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      # ── Generate or restore keystore ─────────────────────────────────
+      # ── Upload working debug APK to Supabase immediately ─────────────
+      - name: Upload APK to Supabase Storage
+        run: |
+          curl -X POST \
+            "${{ secrets.VITE_SUPABASE_URL }}/storage/v1/object/apk/CCGWorld-latest.apk" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            -H "x-upsert: true" \
+            --data-binary @android/app/build/outputs/apk/debug/app-debug.apk
+          echo "✅ APK uploaded to Supabase"
       - name: Setup keystore
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
@@ -176,18 +185,6 @@ jobs:
           if [ ! -f CCGWorld-latest.apk ]; then
             cp android/app/build/outputs/apk/debug/app-debug.apk CCGWorld-latest.apk
           fi
-
-      # ── Upload APK to Supabase Storage for reliable download ─────────
-      - name: Upload APK to Supabase Storage
-        run: |
-          curl -X POST \
-            "${{ secrets.VITE_SUPABASE_URL }}/storage/v1/object/apk/CCGWorld-latest.apk" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            -H "x-upsert: true" \
-            --data-binary @CCGWorld-latest.apk
-          echo "✅ APK uploaded to Supabase"
-          echo "Download URL: ${{ secrets.VITE_SUPABASE_URL }}/storage/v1/object/public/apk/CCGWorld-latest.apk"
 
       # ── Upload APK as artifact (backup) ──────────────────────────────
       - name: Upload Debug APK artifact
