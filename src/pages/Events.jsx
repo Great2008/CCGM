@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import { Link } from 'react-router-dom'
 import { useEventsContent } from '../hooks/useContent'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 
 export default function Events() {
-  const { data: events, loading } = useEventsContent()
+  const [refreshKey, setRefreshKey] = useState(0)
+  const { data: events, loading } = useEventsContent(refreshKey)
+  const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
   const [filter, setFilter] = useState('All')
   const [rsvpd, setRsvpd] = useState({})
   const [rsvping, setRsvping] = useState({})
@@ -29,6 +32,7 @@ export default function Events() {
   const filtered = filter === 'All' ? events : events.filter(e => e.category === filter)
 
   return (
+    <PullToRefresh onRefresh={refresh}>
     <>
       <div style={{
         background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)',
@@ -184,5 +188,6 @@ export default function Events() {
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </>
+    </PullToRefresh>
   )
 }

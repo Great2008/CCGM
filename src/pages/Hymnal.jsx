@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import supabase from '../lib/supabase'
 
 const CACHE_KEY = 'ccgworld_hymns'
@@ -105,6 +106,7 @@ export default function Hymnal() {
   }
 
   return (
+    <PullToRefresh onRefresh={refresh}>
     <>
       <div style={{
         background: 'linear-gradient(135deg, var(--brand-deep) 0%, var(--brand-mid) 100%)',
@@ -296,5 +298,6 @@ export default function Hymnal() {
         @media(max-width:768px){.hymnal-layout{grid-template-columns:1fr!important;}}
       `}</style>
     </>
+    </PullToRefresh>
   )
 }

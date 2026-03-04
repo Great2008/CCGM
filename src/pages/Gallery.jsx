@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import supabase from '../lib/supabase'
 
 const CACHE_KEY = 'ccgworld_gallery'
@@ -25,6 +26,7 @@ async function loadGallery() {
 export default function Gallery() {
   const [images, setImages]   = useState([])
   const [loading, setLoading] = useState(true)
+  const refresh = useCallback(() => { setLoading(true); loadGallery().then(data => { setImages(data); setLoading(false) }) }, [])
   const [filter, setFilter]   = useState('All')
   const [lightbox, setLightbox] = useState(null)
 
@@ -170,5 +172,6 @@ export default function Gallery() {
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </>
+    </PullToRefresh>
   )
 }

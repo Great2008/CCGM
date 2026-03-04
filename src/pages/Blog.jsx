@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import supabase from '../lib/supabase'
 
 const CACHE_KEY = 'ccgworld_blog'
@@ -26,6 +27,7 @@ async function loadPosts() {
 function renderBody(body) {
   if (!body) return null
   return (
+    <PullToRefresh onRefresh={refresh}>
     <div style={{ fontSize:'0.95rem', color:'var(--text-dark)', lineHeight:1.9 }}>
       {body.split('\n\n').map((para, i) =>
         para.startsWith('##') ? (
@@ -45,15 +47,19 @@ function renderBody(body) {
         )
       )}
     </div>
+    </PullToRefresh>
   )
 }
 
 export default function Blog() {
   const [posts, setPosts]     = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
   const [expanded, setExpanded] = useState(null)
 
   useEffect(() => {
+    setLoading(true)
     loadPosts().then(data => { setPosts(data); setLoading(false) })
   }, [])
 

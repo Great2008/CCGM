@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 import { Link } from 'react-router-dom'
@@ -54,6 +55,7 @@ function PostCard({ post, currentUserId, onReact, onComment, onDelete, isAdmin }
   }
 
   return (
+    <PullToRefresh onRefresh={loadPosts}>
     <div style={{background:'white',borderRadius:16,boxShadow:'var(--shadow-sm)',overflow:'hidden',border:'1px solid rgba(15,31,61,0.05)',marginBottom:16}}>
       {post.pinned && (
         <div style={{background:'linear-gradient(90deg,#fef3c7,#fffbeb)',padding:'6px 18px',fontSize:'0.75rem',fontWeight:700,color:'#92400e',display:'flex',alignItems:'center',gap:6}}>
@@ -117,6 +119,7 @@ function PostCard({ post, currentUserId, onReact, onComment, onDelete, isAdmin }
         </div>
       )}
     </div>
+    </PullToRefresh>
   )
 }
 

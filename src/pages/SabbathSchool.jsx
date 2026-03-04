@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import supabase from '../lib/supabase'
 
 const CACHE_KEY = 'ccg-sabbath-lessons'
@@ -54,6 +55,7 @@ export default function SabbathSchool() {
     }
 
     // 2. Try network refresh — but don't let it block or clear cached data
+    const refresh = useCallback(() => { setLoading(true); fetchFresh() }, [])
     const fetchFresh = async () => {
       try {
         const { data } = await supabase.from('sabbath_lessons')
@@ -116,6 +118,7 @@ export default function SabbathSchool() {
   )
 
   return (
+    <PullToRefresh onRefresh={refresh}>
     <>
       {/* Offline banner */}
       {offline && lessons.length > 0 && (
@@ -388,5 +391,6 @@ export default function SabbathSchool() {
 
       <style>{`@media(max-width:768px){.ss-grid{grid-template-columns:1fr!important;}}`}</style>
     </>
+    </PullToRefresh>
   )
 }

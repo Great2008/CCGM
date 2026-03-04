@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import { useSermonsContent } from '../hooks/useContent'
 
 export default function Sermons() {
-  const { data: sermons, loading } = useSermonsContent()
+  const [refreshKey, setRefreshKey] = useState(0)
+  const { data: sermons, loading } = useSermonsContent(refreshKey)
+  const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
 
@@ -17,6 +20,7 @@ export default function Sermons() {
   })
 
   return (
+    <PullToRefresh onRefresh={refresh}>
     <>
       <div style={{
         background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)',
@@ -172,5 +176,6 @@ export default function Sermons() {
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </>
+    </PullToRefresh>
   )
 }

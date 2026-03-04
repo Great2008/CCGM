@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import supabase from '../lib/supabase'
 
 const CACHE_KEY    = 'ccgworld_devotionals'
@@ -125,6 +126,7 @@ export default function Devotional() {
   const isToday = selected?.date === today
 
   return (
+    <PullToRefresh onRefresh={refresh}>
     <>
       <div style={{ background: 'linear-gradient(135deg, var(--brand-deep) 0%, var(--brand-mid) 100%)', padding: 'clamp(80px,12vw,120px) 5% 0' }}>
         <div className="container">
@@ -339,5 +341,6 @@ export default function Devotional() {
         @media(max-width:768px){.dev-layout{grid-template-columns:1fr!important;}}
       `}</style>
     </>
+    </PullToRefresh>
   )
 }

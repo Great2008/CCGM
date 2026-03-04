@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
@@ -76,6 +77,7 @@ export default function Notifications() {
   const filtered = filter === 'all' ? logs : logs.filter(l => l.tag === filter)
 
   return (
+    <PullToRefresh onRefresh={load}>
     <div style={{ minHeight: '100vh', background: 'var(--bg-soft, #f8fafc)', paddingTop: 90 }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px 60px' }}>
 
@@ -181,6 +183,7 @@ export default function Notifications() {
         )}
       </div>
     </div>
+    </PullToRefresh>
   )
 }
 
