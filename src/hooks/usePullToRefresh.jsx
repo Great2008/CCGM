@@ -1,107 +1,129 @@
 /**
  * usePullToRefresh.jsx
- * Native pull-to-refresh for Capacitor — works like every other mobile app.
- * Usage: wrap your page content with <PullToRefresh onRefresh={loadData} />
+ * Pull-to-refresh for Capacitor WebView.
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-const THRESHOLD   = 80   // px pulled before refresh triggers
-const MAX_PULL    = 120  // max pull distance
-const RESISTANCE  = 0.4  // pull resistance factor
+const THRESHOLD  = 65   // px needed to trigger refresh
+const MAX_PULL   = 100  // max visual pull distance
 
-export function usePullToRefresh(onRefresh) {
-  const [pulling, setPulling]     = useState(false)
+export function PullToRefresh({ onRefresh, children }) {
   const [pullY, setPullY]         = useState(0)
   const [refreshing, setRefreshing] = useState(false)
-  const startY  = useRef(0)
-  const active  = useRef(false)
+
+  const startY    = useRef(0)
+  const currentY  = useRef(0)
+  const active    = useRef(false)
+  const triggered = useRef(false)
 
   const doRefresh = useCallback(async () => {
+    if (triggered.current) return
+    triggered.current = true
     setRefreshing(true)
     setPullY(0)
     try {
-      // Haptic feedback
       const { Haptics, ImpactStyle } = await import('@capacitor/haptics').catch(() => ({}))
-      Haptics?.impact?.({ style: ImpactStyle?.MEDIUM })
+      await Haptics?.impact?.({ style: ImpactStyle?.MEDIUM })
       await onRefresh()
     } catch {}
     setRefreshing(false)
-    setPulling(false)
+    triggered.current = false
+    active.current = false
   }, [onRefresh])
 
   useEffect(() => {
     const onTouchStart = (e) => {
-      if (window.scrollY === 0) {
-        startY.current = e.touches[0].clientY
-        active.current = true
-      }
+      // Only activate when scrolled to top
+      if (window.scrollY > 2) return
+      startY.current  = e.touches[0].clientY
+      currentY.current = e.touches[0].clientY
+      active.current  = true
     }
 
     const onTouchMove = (e) => {
-      if (!active.current) return
-      const dy = (e.touches[0].clientY - startY.current) * RESISTANCE
+      if (!active.current || refreshing) return
+      currentY.current = e.touches[0].clientY
+      const dy = currentY.current - startY.current
       if (dy > 0) {
-        setPulling(true)
-        setPullY(Math.min(dy, MAX_PULL))
+        // Apply resistance so it feels natural
+        const pull = Math.min(dy * 0.5, MAX_PULL)
+        setPullY(pull)
+      } else {
+        setPullY(0)
       }
     }
 
     const onTouchEnd = () => {
       if (!active.current) return
-      active.current = false
-      if (pullY >= THRESHOLD * RESISTANCE) {
+      const dy = currentY.current - startY.current
+      if (dy * 0.5 >= THRESHOLD) {
         doRefresh()
       } else {
-        setPulling(false)
+        active.current = false
         setPullY(0)
       }
     }
 
     document.addEventListener('touchstart', onTouchStart, { passive: true })
     document.addEventListener('touchmove',  onTouchMove,  { passive: true })
-    document.addEventListener('touchend',   onTouchEnd)
+    document.addEventListener('touchend',   onTouchEnd,   { passive: true })
     return () => {
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchmove',  onTouchMove)
       document.removeEventListener('touchend',   onTouchEnd)
     }
-  }, [pullY, doRefresh])
+  }, [doRefresh, refreshing])
 
-  return { pulling, pullY, refreshing }
-}
-
-// ── Drop-in component ────────────────────────────────────────────────
-export function PullToRefresh({ onRefresh, children }) {
-  const { pulling, pullY, refreshing } = usePullToRefresh(onRefresh)
-  const progress = Math.min(pullY / (80 * 0.4), 1)
+  const showing = pullY > 4 || refreshing
+  const progress = Math.min(pullY / THRESHOLD, 1)
+  const rotation = refreshing ? undefined : progress * 200
 
   return (
-    <div style={{ position: 'relative' }}>
-      {/* Pull indicator */}
-      {(pulling || refreshing) && (
+    <div style={{ position: 'relative', overflowX: 'hidden' }}>
+      {/* Spinner */}
+      <div style={{
+        position: 'fixed',
+        top: 66,
+        left: '50%',
+        transform: `translateX(-50%) translateY(${refreshing ? 14 : Math.min(pullY - 20, 14)}px)`,
+        zIndex: 900,
+        pointerEvents: 'none',
+        opacity: showing ? 1 : 0,
+        transition: refreshing ? 'transform 0.2s ease, opacity 0.15s' : 'opacity 0.15s',
+      }}>
         <div style={{
-          position: 'fixed', top: 66, left: 0, right: 0,
-          display: 'flex', justifyContent: 'center',
-          transform: `translateY(${refreshing ? 12 : pullY - 10}px)`,
-          transition: refreshing ? 'transform 0.2s' : 'none',
-          zIndex: 800, pointerEvents: 'none',
+          width: 38, height: 38,
+          borderRadius: '50%',
+          background: 'white',
+          boxShadow: '0 3px 14px rgba(0,0,0,0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: refreshing ? 'ptr-spin 0.75s linear infinite' : 'none',
+          transform: refreshing ? 'none' : `rotate(${rotation}deg)`,
+          transition: refreshing ? 'none' : 'transform 0.05s',
         }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: 'white',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.1rem',
-            transform: `rotate(${refreshing ? 0 : progress * 180}deg)`,
-            animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
-            transition: 'transform 0.1s',
-          }}>
-            {refreshing ? '⟳' : '↓'}
-          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 4v6h-6"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
         </div>
-      )}
-      {children}
-      <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
+      </div>
+
+      {/* Page content pushed down while pulling */}
+      <div style={{
+        transform: showing ? `translateY(${refreshing ? 52 : Math.min(pullY, MAX_PULL) * 0.4}px)` : 'none',
+        transition: refreshing || pullY === 0 ? 'transform 0.25s ease' : 'none',
+      }}>
+        {children}
+      </div>
+
+      <style>{`
+        @keyframes ptr-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 }
