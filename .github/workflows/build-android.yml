@@ -45,6 +45,7 @@ jobs:
           npm install @capacitor/splash-screen @capacitor/status-bar
           npm install @capacitor/push-notifications @capacitor/haptics
           npm install @capacitor/share @capacitor/network
+          npm install @capawesome/capacitor-badge
 
       - name: Add Android platform
         run: |
@@ -116,10 +117,35 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
+      # ── Sign the release APK ──────────────────────────────────────────
+      - name: Sign release APK
+        run: |
+          # Decode keystore from secret
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ccgworld.keystore
+          # Build signed release APK
+          cd android && ./gradlew assembleRelease --no-daemon
+          # Sign it
+          jarsigner -verbose \
+            -keystore ../ccgworld.keystore \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            -signedjar ../CCGWorld-signed.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk \
+            "${{ secrets.KEY_ALIAS }}"
+          cd ..
+          # Align
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/zipalign \
+            -v 4 CCGWorld-signed.apk CCGWorld-latest.apk || \
+            cp CCGWorld-signed.apk CCGWorld-latest.apk
+
       # ── Rename APK with consistent name for permanent URL ────────────
       - name: Prepare release files
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk CCGWorld-latest.apk
+          # CCGWorld-latest.apk already created by sign step above
+          # Fall back to debug if signing secrets not configured
+          if [ ! -f CCGWorld-latest.apk ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk CCGWorld-latest.apk
+          fi
 
       # ── Upload APK as artifact (always) ──────────────────────────────
       - name: Upload Debug APK artifact

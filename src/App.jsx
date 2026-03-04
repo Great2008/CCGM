@@ -4,6 +4,7 @@ import Navbar       from './components/Navbar'
 import Footer       from './components/Footer'
 import { OfflineBanner } from './hooks/useMobileFeatures.jsx'
 import UpdatePrompt from './components/UpdatePrompt'
+import { useNativeSetup } from './hooks/useNativeSetup.jsx'
 import Home         from './pages/Home'
 import Sermons      from './pages/Sermons'
 import Events       from './pages/Events'
@@ -22,8 +23,11 @@ import Notifications from './pages/Notifications'
 import FindChurch   from './pages/FindChurch'
 import PrayerWall   from './pages/PrayerWall'
 
+// Inner component so useNavigate (used by useNativeSetup) works inside BrowserRouter
 function AppInner() {
   const { user } = useAuth()
+  useNativeSetup()  // deep links + badge count
+
   return (
     <>
       <Navbar />

@@ -1,7 +1,7 @@
 {
   "name": "ccgworld-mobile",
   "version": "2.0.0",
-  "description": "CCG World — Christian Church Of God Mission (Mobile App)",
+  "description": "CCG World \u2014 Christian Church Of God Mission (Mobile App)",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -32,7 +32,8 @@
     "@capacitor/local-notifications": "^6.0.0",
     "@capacitor/share": "^6.0.0",
     "@capacitor/haptics": "^6.0.0",
-    "@capacitor/network": "^6.0.0"
+    "@capacitor/network": "^6.0.0",
+    "@capawesome/capacitor-badge": "^6.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
