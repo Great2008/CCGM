@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import supabase from '../lib/supabase'
 
+const stripNum = s => { const m = s.trim().match(/^[0-9]+\.\s*/); return m ? s.trim().slice(m[0].length) : s.trim() }
+
 const CACHE_KEY = 'ccg-sabbath-lessons'
 const CACHE_TTL = 24 * 60 * 60 * 1000
 const FONT_SIZE_KEY = 'ccg-sabbath-fontsize'
@@ -80,13 +82,13 @@ function ReadingContent({ blocks, fontSize }) {
   return (
     <div style={{ lineHeight: 1.9, color: 'var(--text-dark)', fontSize: fontSize + 'px' }}>
       {blocks.map((para, i) =>
-        /^##/.test(para) ? (
+        para.startsWith('#') && para[1] === '#' ? (
           <h3 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: (fontSize + 4) + 'px', margin: '32px 0 14px', borderBottom: '2px solid var(--brand-pale)', paddingBottom: 6 }}>
-            {para.replace(/^##\s*/, '')}
+            {para.startsWith('## ') ? para.slice(3) : para.slice(2)}
           </h3>
-        ) : /^#/.test(para) ? (
+        ) : para.startsWith('#') && !para.startsWith('##') ? (
           <h4 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-light)', fontSize: (fontSize + 2) + 'px', margin: '22px 0 10px', fontWeight: 700 }}>
-            {para.replace(/^#\s*/, '')}
+            {para.startsWith('# ') ? para.slice(2) : para.slice(1)}
           </h4>
         ) : (
           <p key={i} style={{ marginBottom: 20 }}>{para}</p>
@@ -437,7 +439,7 @@ export default function SabbathSchool() {
                             {selected.discussion_questions.split('\n').filter(Boolean).map((q, i) => (
                               <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                                 <span style={{ color: 'var(--gold)', fontWeight: 900, flexShrink: 0 }}>{i + 1}.</span>
-                                <span>{q.replace(/^\d+\.\s*/, '')}</span>
+                                <span>{stripNum(q)}</span>
                               </div>
                             ))}
                           </div>
@@ -472,7 +474,7 @@ export default function SabbathSchool() {
                             {selected.analysis_points.split('\n').filter(Boolean).map((pt, i) => (
                               <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: 'var(--brand-pale)', borderRadius: 12, padding: '14px 18px' }}>
                                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--brand-light)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 900, flexShrink: 0 }}>{i + 1}</span>
-                                <span style={{ color: 'var(--brand-deep)', fontSize: fontSize + 'px', lineHeight: 1.7 }}>{pt.replace(/^\d+\.\s*/, '')}</span>
+                                <span style={{ color: 'var(--brand-deep)', fontSize: fontSize + 'px', lineHeight: 1.7 }}>{stripNum(pt)}</span>
                               </div>
                             ))}
                           </div>
