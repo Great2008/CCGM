@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import supabase from '../lib/supabase'
 
 const stripNum = s => { const m = s.trim().match(/^[0-9]+\.\s*/); return m ? s.trim().slice(m[0].length) : s.trim() }
@@ -96,7 +95,6 @@ function ReadingContent({ blocks, fontSize }) {
       )}
     </div>
     </div>
-    </PullToRefresh>
   )
 }
 
@@ -210,7 +208,6 @@ export default function SabbathSchool() {
   const nextLesson = filtered[lessonIdx - 1]
 
   return (
-    <PullToRefresh onRefresh={refresh}>
     <div style={{ overflowX: 'hidden', width: '100%' }}>
 
       {offline && lessons.length > 0 && (
@@ -583,6 +580,5 @@ export default function SabbathSchool() {
         </div>
       </div>
     </div>
-    </PullToRefresh>
   )
 }
