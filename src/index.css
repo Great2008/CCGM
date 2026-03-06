@@ -32,7 +32,12 @@
   --green-pale:   #eff6ff;
 }
 
-html { scroll-behavior: smooth; font-size: 16px; }
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  overflow-x: hidden;
+  max-width: 100%;
+}
 
 body {
   font-family: var(--font-body);
@@ -40,6 +45,9 @@ body {
   background: var(--cream);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
 }
 
 h1,h2,h3,h4 { font-family: var(--font-display); line-height: 1.2; }
@@ -194,5 +202,4 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
   .hero-ctas { flex-direction: column !important; align-items: center !important; }
   .hero-ctas a { width: 100%; max-width: 280px; justify-content: center !important; }
 }
-
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
