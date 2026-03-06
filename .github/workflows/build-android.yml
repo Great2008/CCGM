@@ -116,10 +116,15 @@ jobs:
       # ── Upload working debug APK to Supabase immediately ─────────────
       - name: Upload APK to Supabase Storage
         run: |
+          # Verify file is a real APK
+          file android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+
           curl -X POST \
             "${{ secrets.VITE_SUPABASE_URL }}/storage/v1/object/apk/CCGWorld-latest.apk" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/vnd.android.package-archive" \
+            -H "Content-Disposition: attachment; filename=CCGWorld-latest.apk" \
             -H "x-upsert: true" \
             --data-binary @android/app/build/outputs/apk/debug/app-debug.apk
           echo "✅ APK uploaded to Supabase"
