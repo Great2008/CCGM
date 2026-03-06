@@ -94,7 +94,6 @@ function ReadingContent({ blocks, fontSize }) {
         )
       )}
     </div>
-    </div>
   )
 }
 
