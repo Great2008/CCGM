@@ -203,3 +203,20 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
   .hero-ctas a { width: 100%; max-width: 280px; justify-content: center !important; }
 }
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* Sabbath School responsive layout */
+@media (max-width: 768px) {
+  .ss-desktop-sidebar { display: none !important; }
+  .ss-mobile-bar { display: flex !important; }
+  .ss-content-wrap { display: block !important; }
+  .ss-outer { padding: 0 0 60px 0 !important; max-width: 100% !important; }
+  .ss-card { border-radius: 0 !important; border-left: none !important; border-right: none !important; box-shadow: none !important; }
+  .ss-hero { padding-left: 16px !important; padding-right: 16px !important; }
+  .ss-mobile-bar { left: 0 !important; right: 0 !important; width: 100% !important; box-sizing: border-box !important; }
+}
+@media (min-width: 769px) {
+  .ss-mobile-bar { display: none !important; }
+  .ss-content-wrap { display: grid !important; grid-template-columns: 260px 1fr; gap: 28px; }
+  .ss-desktop-sidebar { display: block !important; }
+}
+.ss-lesson-item:hover { background: var(--brand-pale) !important; }

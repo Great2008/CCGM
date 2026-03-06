@@ -210,23 +210,6 @@ export default function SabbathSchool() {
   return (
     <PullToRefresh onRefresh={refresh}>
     <div style={{ overflowX: 'hidden', width: '100%' }}>
-      <style>{`
-        @media (max-width: 768px) {
-          .ss-desktop-sidebar { display: none !important; }
-          .ss-mobile-bar { display: flex !important; }
-          .ss-content-wrap { display: block !important; }
-          .ss-outer { padding: 0 0 60px 0 !important; max-width: 100% !important; }
-          .ss-card { border-radius: 0 !important; border-left: none !important; border-right: none !important; box-shadow: none !important; }
-          .ss-hero { padding-left: 16px !important; padding-right: 16px !important; }
-          .ss-mobile-bar { left: 0 !important; right: 0 !important; width: 100% !important; box-sizing: border-box !important; }
-        }
-        @media (min-width: 769px) {
-          .ss-mobile-bar { display: none !important; }
-          .ss-content-wrap { display: grid !important; grid-template-columns: 260px 1fr; gap: 28px; }
-          .ss-desktop-sidebar { display: block !important; }
-        }
-        .ss-lesson-item:hover { background: var(--brand-pale) !important; }
-      `}</style>
 
       {offline && lessons.length > 0 && (
         <div style={{ background: '#fff9f0', borderBottom: '2px solid #fed7aa', padding: '10px 20px', textAlign: 'center', fontSize: '0.82rem', color: '#c2410c', fontWeight: 600 }}>
