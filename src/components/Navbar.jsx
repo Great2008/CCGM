@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { to:'/find-church', label:'⛪ Find Church' },
   { to:'/timeline', label:'🌐 Timeline' },
   { to:'/prayer-wall', label:'🙏 Prayer Wall' },
+  { to:'/studio',       label:'🎬 Studio' },
   { to:'/contact',  label:'Contact' },
 ]
 
