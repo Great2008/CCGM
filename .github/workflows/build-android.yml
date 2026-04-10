@@ -80,58 +80,67 @@ jobs:
         run: npx cap sync android
 
       # Icons copied AFTER sync so they are not overwritten
-      - name: Copy app icons and set up adaptive icons
+      - name: Install Pillow for icon processing
+        run: pip install Pillow --quiet
+
+      - name: Generate and copy app icons
         run: |
-          MIPMAP=android/app/src/main/res
-          VALUES=android/app/src/main/res/values
+          python3 - << 'PYEOF'
+          from PIL import Image
+          import os
 
-          # ── 1. Copy legacy launcher icons (all densities) ──────────────
-          cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher.png
-          cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher_round.png
-          cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher.png
-          cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher_round.png
-          cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher.png
-          cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher_round.png
-          cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher.png
-          cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher_round.png
-          cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher.png
-          cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher_round.png
+          MIPMAP = "android/app/src/main/res"
+          VALUES = "android/app/src/main/res/values"
 
-          # ── 2. Copy foreground PNGs (logo only, no background) ─────────
-          cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher_foreground.png
-          cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher_foreground.png
-          cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher_foreground.png
-          cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher_foreground.png
-          cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher_foreground.png
+          # density -> (foreground_canvas_px, launcher_size_px, source_icon)
+          # Foreground canvas = 1.5x launcher size (108dp equivalent per density)
+          # Logo rendered at 66% of canvas = natural padding / safe zone
+          densities = {
+              "mipmap-mdpi":    (108, 48,  "public/icon-72.png"),
+              "mipmap-hdpi":    (162, 72,  "public/icon-96.png"),
+              "mipmap-xhdpi":   (216, 96,  "public/icon-96.png"),
+              "mipmap-xxhdpi":  (324, 144, "public/icon-144.png"),
+              "mipmap-xxxhdpi": (432, 192, "public/icon-192.png"),
+          }
 
-          # ── 3. Write adaptive icon background color resource ───────────
-          mkdir -p $VALUES
-          cat > $VALUES/ic_launcher_background.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <color name="ic_launcher_background">#FFFFFF</color>
-          </resources>
-          EOF
+          def make_foreground(src_path, canvas_px):
+              logo = Image.open(src_path).convert("RGBA")
+              logo_size = int(canvas_px * 0.66)
+              logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
+              canvas = Image.new("RGBA", (canvas_px, canvas_px), (0, 0, 0, 0))
+              offset = (canvas_px - logo_size) // 2
+              canvas.paste(logo, (offset, offset), logo)
+              return canvas
 
-          # ── 4. Write adaptive icon XML (mipmap-anydpi-v26) ────────────
-          mkdir -p $MIPMAP/mipmap-anydpi-v26
-          cat > $MIPMAP/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_launcher_background"/>
-              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-          </adaptive-icon>
-          EOF
+          for density, (canvas_px, launcher_px, src) in densities.items():
+              out_dir = os.path.join(MIPMAP, density)
+              os.makedirs(out_dir, exist_ok=True)
 
-          cat > $MIPMAP/mipmap-anydpi-v26/ic_launcher_round.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_launcher_background"/>
-              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-          </adaptive-icon>
-          EOF
+              # Padded foreground (transparent canvas, logo at 66%)
+              fg = make_foreground(src, canvas_px)
+              fg.save(os.path.join(out_dir, "ic_launcher_foreground.png"))
 
-          echo "✅ Adaptive icons configured with white background"
+              # Standard launcher icons (exact size, no padding)
+              icon = Image.open(src).convert("RGBA").resize((launcher_px, launcher_px), Image.LANCZOS)
+              icon.save(os.path.join(out_dir, "ic_launcher.png"))
+              icon.save(os.path.join(out_dir, "ic_launcher_round.png"))
+              print(f"✅ {density}: launcher={launcher_px}px, foreground={canvas_px}px canvas")
+
+          # Background color resource
+          os.makedirs(VALUES, exist_ok=True)
+          with open(os.path.join(VALUES, "ic_launcher_background.xml"), "w") as f:
+              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#FFFFFF</color>\n</resources>\n')
+          print("✅ ic_launcher_background.xml (white)")
+
+          # Adaptive icon XMLs for Android 8+
+          anydpi = os.path.join(MIPMAP, "mipmap-anydpi-v26")
+          os.makedirs(anydpi, exist_ok=True)
+          xml = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/ic_launcher_background"/>\n    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n'
+          for fname in ("ic_launcher.xml", "ic_launcher_round.xml"):
+              with open(os.path.join(anydpi, fname), "w") as f:
+                  f.write(xml)
+          print("✅ mipmap-anydpi-v26 adaptive XMLs written")
+          PYEOF
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
