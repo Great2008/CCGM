@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react'
-import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
+import { useState, useEffect } from 'react'
 import supabase from '../lib/supabase'
+import ShareButton, { ShareButtonLight } from '../components/ShareButton'
+import NewsletterSignup from '../components/NewsletterSignup'
 
 const CACHE_KEY = 'ccgworld_blog'
 
@@ -27,7 +28,6 @@ async function loadPosts() {
 function renderBody(body) {
   if (!body) return null
   return (
-    <PullToRefresh onRefresh={refresh}>
     <div style={{ fontSize:'0.95rem', color:'var(--text-dark)', lineHeight:1.9 }}>
       {body.split('\n\n').map((para, i) =>
         para.startsWith('##') ? (
@@ -47,19 +47,15 @@ function renderBody(body) {
         )
       )}
     </div>
-    </PullToRefresh>
   )
 }
 
 export default function Blog() {
   const [posts, setPosts]     = useState([])
   const [loading, setLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
   const [expanded, setExpanded] = useState(null)
 
   useEffect(() => {
-    setLoading(true)
     loadPosts().then(data => { setPosts(data); setLoading(false) })
   }, [])
 
@@ -95,7 +91,7 @@ export default function Blog() {
           {!loading && posts.length === 0 && (
             <div style={{
               textAlign: 'center', padding: '80px 20px',
-              background: 'white', borderRadius: 20, boxShadow: 'var(--shadow-sm)',
+              background: 'var(--white, white)', borderRadius: 20, boxShadow: 'var(--shadow-sm)',
             }}>
               <div style={{ fontSize: '4rem', marginBottom: 20 }}>✍️</div>
               <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.5rem', marginBottom: 12 }}>
@@ -140,11 +136,17 @@ export default function Blog() {
                         {featured.excerpt}
                       </p>
                     )}
-                    {featured.body && (
-                      <button className="btn btn-green" onClick={() => setExpanded(expanded?.id === featured.id ? null : featured)}>
-                        {expanded?.id === featured.id ? 'Show Less ↑' : 'Read Full Article →'}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {featured.body && (
+                        <button className="btn btn-green" onClick={() => setExpanded(expanded?.id === featured.id ? null : featured)}>
+                          {expanded?.id === featured.id ? 'Show Less ↑' : 'Read Full Article →'}
+                        </button>
+                      )}
+                      <ShareButtonLight
+                        title={featured.title}
+                        text={featured.excerpt || featured.title}
+                      />
+                    </div>
                     {expanded?.id === featured.id && (
                       <div style={{ marginTop: 24, borderTop: '1px solid #eee', paddingTop: 20 }}>
                         {renderBody(featured.body)}
@@ -186,18 +188,24 @@ export default function Blog() {
                               {post.excerpt}
                             </p>
                           )}
-                          {post.body && (
-                            <>
-                              <button className="btn btn-outline-green" style={{ padding: '8px 20px', fontSize: '0.8rem' }}
-                                onClick={() => setExpanded(expanded?.id === post.id ? null : post)}>
-                                {expanded?.id === post.id ? 'Show Less ↑' : 'Read More →'}
-                              </button>
-                              {expanded?.id === post.id && (
-                                <div style={{ marginTop: 16, borderTop: '1px solid #eee', paddingTop: 16 }}>
-                                  {renderBody(post.body)}
-                                </div>
-                              )}
-                            </>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                            {post.body && (
+                              <>
+                                <button className="btn btn-outline-green" style={{ padding: '8px 20px', fontSize: '0.8rem' }}
+                                  onClick={() => setExpanded(expanded?.id === post.id ? null : post)}>
+                                  {expanded?.id === post.id ? 'Show Less ↑' : 'Read More →'}
+                                </button>
+                              </>
+                            )}
+                            <ShareButtonLight
+                              title={post.title}
+                              text={post.excerpt || post.title}
+                            />
+                          </div>
+                          {expanded?.id === post.id && (
+                            <div style={{ marginTop: 16, borderTop: '1px solid #eee', paddingTop: 16 }}>
+                              {renderBody(post.body)}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -215,20 +223,7 @@ export default function Blog() {
               background: 'linear-gradient(135deg, var(--brand-mid) 0%, var(--brand-deep) 100%)',
               borderRadius: 20, padding: '50px 40px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: 10 }}>📬</div>
-              <h3 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: '1.7rem', marginBottom: 10 }}>
-                Get Daily Devotionals in Your Inbox
-              </h3>
-              <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 28, maxWidth: 420, margin: '0 auto 28px' }}>
-                Start every morning in the Word. Subscribe for free daily devotionals.
-              </p>
-              <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', gap: 12, maxWidth: 440, margin: '0 auto', flexWrap: 'wrap' }}>
-                <input type="email" placeholder="Enter your email address" style={{
-                  flex: '1 1 220px', padding: '13px 18px', borderRadius: 40,
-                  border: 'none', fontSize: '0.95rem', outline: 'none', fontFamily: 'var(--font-body)',
-                }} />
-                <button type="submit" className="btn btn-gold">Subscribe →</button>
-              </form>
+              <NewsletterSignup />
             </div>
           )}
         </div>

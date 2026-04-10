@@ -1,14 +1,11 @@
-import { useState, useCallback } from 'react'
-import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useEventsContent } from '../hooks/useContent'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 
 export default function Events() {
-  const [refreshKey, setRefreshKey] = useState(0)
-  const { data: events, loading } = useEventsContent(refreshKey)
-  const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
+  const { data: events, loading } = useEventsContent()
   const [filter, setFilter] = useState('All')
   const [rsvpd, setRsvpd] = useState({})
   const [rsvping, setRsvping] = useState({})
@@ -32,7 +29,6 @@ export default function Events() {
   const filtered = filter === 'All' ? events : events.filter(e => e.category === filter)
 
   return (
-    <PullToRefresh onRefresh={refresh}>
     <>
       <div style={{
         background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)',
@@ -171,7 +167,7 @@ export default function Events() {
           {!loading && events.length === 0 && (
             <div style={{
               textAlign: 'center', padding: '80px 20px',
-              background: 'white', borderRadius: 20, boxShadow: 'var(--shadow-sm)',
+              background: 'var(--white, white)', borderRadius: 20, boxShadow: 'var(--shadow-sm)',
             }}>
               <div style={{ fontSize: '4rem', marginBottom: 20 }}>📅</div>
               <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.5rem', marginBottom: 12 }}>
@@ -188,6 +184,5 @@ export default function Events() {
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </>
-    </PullToRefresh>
   )
 }

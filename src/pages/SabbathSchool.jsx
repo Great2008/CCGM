@@ -1,59 +1,77 @@
 import { useState, useEffect, useCallback } from 'react'
 import supabase from '../lib/supabase'
 
-const stripNum = s => { const m = s.trim().match(/^[0-9]+\.\s*/); return m ? s.trim().slice(m[0].length) : s.trim() }
-
-const CACHE_KEY = 'ccg-sabbath-lessons'
-const CACHE_TTL = 24 * 60 * 60 * 1000
+const CACHE_KEY = 'ccg-sabbath-current'
 const FONT_SIZE_KEY = 'ccg-sabbath-fontsize'
 
-function loadCache(ignoreExpiry = false) {
+function saveCache(lesson) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(lesson))
+  } catch(_) {
+    // If full lesson is too large, store without body content as fallback
+    try {
+      const slim = { ...lesson, body: '', analysis: '', analysis_points: null }
+      localStorage.setItem(CACHE_KEY, JSON.stringify(slim))
+    } catch(_) {}
+  }
+}
+
+function loadCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    const data = Array.isArray(parsed) ? parsed : parsed.data
-    const ts   = Array.isArray(parsed) ? 0      : parsed.ts
-    if (!data || data.length === 0) return null
-    if (!ignoreExpiry && ts && Date.now() - ts > CACHE_TTL && navigator.onLine) return null
-    return data
+    return raw ? JSON.parse(raw) : null
   } catch { return null }
 }
 
-function saveCache(data) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })) } catch {}
+// Only update cache if lesson changed (different id, updated_at, or body was empty before)
+function lessonChanged(cached, fresh) {
+  if (!cached || !fresh) return true
+  if (cached.id !== fresh.id) return true
+  if (cached.updated_at !== fresh.updated_at) return true
+  // Force refresh if cached body is empty but fresh has content
+  if (!cached.body && fresh.body) return true
+  return false
 }
+
 
 function fmt(d) {
   if (!d) return ''
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
 }
 
+function getThisSaturday() {
+  const today = new Date()
+  const dow = today.getDay() // 0=Sun ... 6=Sat
+  const sat = new Date(today)
+  sat.setDate(today.getDate() + (dow === 6 ? 0 : 6 - dow))
+  // Return as YYYY-MM-DD string — avoids all timezone issues
+  const y = sat.getFullYear()
+  const m = String(sat.getMonth() + 1).padStart(2, '0')
+  const d = String(sat.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function thisWeekLesson(lessons) {
   if (!lessons?.length) return null
-  const today = new Date(); today.setHours(0,0,0,0)
-  // Find this week's Saturday (day 6). If today IS Saturday use today.
-  const thisSaturday = new Date(today)
-  const dayOfWeek = today.getDay() // 0=Sun,1=Mon,...,6=Sat
-  const daysUntilSaturday = dayOfWeek === 6 ? 0 : 6 - dayOfWeek
-  thisSaturday.setDate(today.getDate() + daysUntilSaturday)
-  thisSaturday.setHours(0,0,0,0)
 
-  // Try to find a lesson whose date matches this week's Saturday exactly
-  const thisWeek = lessons.find(l =>
-    new Date(l.lesson_date + 'T00:00:00').getTime() === thisSaturday.getTime()
+  const thisSaturdayStr = getThisSaturday() // e.g. "2026-03-21"
+
+  // 1. Only consider lessons whose date ≤ this Saturday's date string
+  const available = lessons.filter(l =>
+    l.lesson_date && l.lesson_date.slice(0, 10) <= thisSaturdayStr
   )
-  if (thisWeek) return thisWeek
+  if (!available.length) return null
 
-  // Fallback: pick the closest lesson to today's date (past preferred)
-  const todayMs = today.getTime()
-  return [...lessons].sort((a, b) => {
-    const aMs = new Date(a.lesson_date + 'T00:00:00').getTime()
-    const bMs = new Date(b.lesson_date + 'T00:00:00').getTime()
-    const aDiff = aMs <= todayMs ? todayMs - aMs : (aMs - todayMs) * 2
-    const bDiff = bMs <= todayMs ? todayMs - bMs : (bMs - todayMs) * 2
-    return aDiff - bDiff
-  })[0]
+  // 2. Exact match for this Saturday
+  const exact = available.find(l =>
+    l.lesson_date.slice(0, 10) === thisSaturdayStr
+  )
+  if (exact) return exact
+
+  // 3. Fallback: most recent past lesson
+  return [...available].sort((a, b) =>
+    b.lesson_date.localeCompare(a.lesson_date)
+  )[0]
 }
 
 const parseBlocks = (text) => {
@@ -81,13 +99,13 @@ function ReadingContent({ blocks, fontSize }) {
   return (
     <div style={{ lineHeight: 1.9, color: 'var(--text-dark)', fontSize: fontSize + 'px' }}>
       {blocks.map((para, i) =>
-        para.startsWith('#') && para[1] === '#' ? (
+        /^##/.test(para) ? (
           <h3 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: (fontSize + 4) + 'px', margin: '32px 0 14px', borderBottom: '2px solid var(--brand-pale)', paddingBottom: 6 }}>
-            {para.startsWith('## ') ? para.slice(3) : para.slice(2)}
+            {para.replace(/^##\s*/, '')}
           </h3>
-        ) : para.startsWith('#') && !para.startsWith('##') ? (
+        ) : /^#/.test(para) ? (
           <h4 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-light)', fontSize: (fontSize + 2) + 'px', margin: '22px 0 10px', fontWeight: 700 }}>
-            {para.startsWith('# ') ? para.slice(2) : para.slice(1)}
+            {para.replace(/^#\s*/, '')}
           </h4>
         ) : (
           <p key={i} style={{ marginBottom: 20 }}>{para}</p>
@@ -125,42 +143,45 @@ export default function SabbathSchool() {
     })
   }
 
-  const fetchFresh = useCallback(async (cached) => {
+  const fetchFresh = useCallback(async (cachedLesson) => {
     try {
       const { data } = await supabase.from('sabbath_lessons')
         .select('*').eq('published', true)
         .order('lesson_date', { ascending: false })
       if (data && data.length > 0) {
         setLessons(data)
-        setSelected(prev => {
-          if (!prev) return thisWeekLesson(data)
-          return data.find(l => l.id === prev.id) || thisWeekLesson(data)
-        })
-        saveCache(data)
+        const current = thisWeekLesson(data)
+        setSelected(current)
+        // Only write cache if this week's lesson is new or updated
+        if (current && lessonChanged(cachedLesson, current)) {
+          saveCache(current)
+        }
         setOffline(false)
-      } else {
-        if (!cached || cached.length === 0) setLoading(false)
-        setOffline(true)
       }
     } catch {
-      if (!cached || cached.length === 0) { setOffline(true); setLoading(false) }
-      else { setOffline(true) }
+      if (!cachedLesson) setOffline(true)
+    } finally {
+      setLoading(false)
     }
-    if (!cached || cached.length === 0) setLoading(false)
   }, [])
 
   useEffect(() => {
-    const cached = loadCache(true)
-    if (cached && cached.length > 0) {
-      setLessons(cached)
-      setSelected(thisWeekLesson(cached))
+    const cachedLesson = loadCache()
+    if (cachedLesson && cachedLesson.body) {
+      // Only use cache if it has actual content
+      setLessons([cachedLesson])
+      setSelected(cachedLesson)
       setLoading(false)
     }
-    fetchFresh(cached)
+    fetchFresh(cachedLesson)
   }, [fetchFresh])
+
+  // Only show lessons up to and including this week's Saturday
+  const thisSat = getThisSaturday() // YYYY-MM-DD string
 
   const quarters = [...new Set(lessons.map(l => l.quarter).filter(Boolean))].sort().reverse()
   const filtered = lessons.filter(l => {
+    if (!l.lesson_date || l.lesson_date.slice(0, 10) > thisSat) return false
     const matchQ = quarter === 'all' || l.quarter === quarter
     const matchS = !search || l.title.toLowerCase().includes(search.toLowerCase()) ||
       (l.scripture || '').toLowerCase().includes(search.toLowerCase())
@@ -208,9 +229,26 @@ export default function SabbathSchool() {
 
   return (
     <div style={{ overflowX: 'hidden', width: '100%' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .ss-desktop-sidebar { display: none !important; }
+          .ss-mobile-bar { display: flex !important; }
+          .ss-content-wrap { display: block !important; }
+          .ss-outer { padding: 0 0 60px 0 !important; max-width: 100% !important; }
+          .ss-card { border-radius: 0 !important; border-left: none !important; border-right: none !important; box-shadow: none !important; }
+          .ss-hero { padding-left: 16px !important; padding-right: 16px !important; }
+          .ss-mobile-bar { left: 0 !important; right: 0 !important; width: 100% !important; box-sizing: border-box !important; }
+        }
+        @media (min-width: 769px) {
+          .ss-mobile-bar { display: none !important; }
+          .ss-content-wrap { display: grid !important; grid-template-columns: 260px 1fr; gap: 28px; }
+          .ss-desktop-sidebar { display: block !important; }
+        }
+        .ss-lesson-item:hover { background: var(--brand-pale) !important; }
+      `}</style>
 
       {offline && lessons.length > 0 && (
-        <div style={{ background: '#fff9f0', borderBottom: '2px solid #fed7aa', padding: '10px 20px', textAlign: 'center', fontSize: '0.82rem', color: '#c2410c', fontWeight: 600 }}>
+        <div style={{ background: 'var(--white, #fff9f0)', borderBottom: '2px solid #fed7aa', padding: '10px 20px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-dark)', fontWeight: 600 }}>
           Offline — showing {lessons.length} cached lesson{lessons.length !== 1 ? 's' : ''}
         </div>
       )}
@@ -266,18 +304,18 @@ export default function SabbathSchool() {
       {showList && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column' }}
           onClick={() => setShowList(false)}>
-          <div style={{ marginTop: 'auto', background: 'white', borderRadius: '20px 20px 0 0', maxHeight: '82vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          <div style={{ marginTop: 'auto', background: 'var(--white, white)', borderRadius: '20px 20px 0 0', maxHeight: '82vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e2e8f0' }} />
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: '#d1fae5' }} />
             </div>
-            <div style={{ padding: '8px 18px 14px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ padding: '8px 18px 14px', borderBottom: '1px solid #f0fdf4' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--brand-deep)', fontSize: '1rem', marginBottom: 10 }}>All Lessons</div>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search lessons..."
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontFamily: 'var(--font-body)', fontSize: '0.92rem', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #d1fae5', fontFamily: 'var(--font-body)', fontSize: '0.92rem', boxSizing: 'border-box' }} />
               {quarters.length > 1 && (
                 <select value={quarter} onChange={e => setQuarter(e.target.value)}
-                  style={{ width: '100%', marginTop: 8, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontFamily: 'var(--font-body)', fontSize: '0.92rem', background: 'white' }}>
+                  style={{ width: '100%', marginTop: 8, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #d1fae5', fontFamily: 'var(--font-body)', fontSize: '0.92rem', background: 'var(--white, white)' }}>
                   <option value="all">All Quarters</option>
                   {quarters.map(q => <option key={q} value={q}>{q}</option>)}
                 </select>
@@ -292,7 +330,7 @@ export default function SabbathSchool() {
                 const isThisWeek = l.id === thisWeekLesson(lessons)?.id
                 return (
                   <div key={l.id} id={'ss-lesson-' + l.id} className="ss-lesson-item" onClick={() => selectLesson(l)}
-                    style={{ padding: '16px 20px', cursor: 'pointer', borderBottom: '1px solid #f8fafc', background: isSelected ? 'var(--brand-pale)' : 'white', borderLeft: `4px solid ${isSelected ? 'var(--brand-light)' : 'transparent'}` }}>
+                    style={{ padding: '16px 20px', cursor: 'pointer', borderBottom: '1px solid #f8faf8', background: isSelected ? 'var(--brand-pale)' : 'var(--white, white)', borderLeft: `4px solid ${isSelected ? 'var(--brand-light)' : 'transparent'}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                       <div style={{ fontWeight: isSelected ? 700 : 500, color: 'var(--brand-deep)', fontSize: '0.95rem', lineHeight: 1.4 }}>{l.title}</div>
                       {isThisWeek && <span style={{ background: 'var(--gold)', color: 'white', fontSize: '0.62rem', padding: '3px 9px', borderRadius: 10, fontWeight: 900, flexShrink: 0, alignSelf: 'flex-start' }}>NOW</span>}
@@ -313,13 +351,13 @@ export default function SabbathSchool() {
 
           {/* Desktop Sidebar */}
           <div className="ss-desktop-sidebar" style={{ display: 'none' }}>
-            <div style={{ background: 'white', borderRadius: 16, boxShadow: 'var(--shadow-sm)', border: '1.5px solid #e2e8f0', overflow: 'hidden', position: 'sticky', top: 24 }}>
-              <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ background: 'var(--white, white)', borderRadius: 16, boxShadow: 'var(--shadow-sm)', border: '1.5px solid #d1fae5', overflow: 'hidden', position: 'sticky', top: 24 }}>
+              <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #f0fdf4' }}>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search lessons..."
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e2e8f0', fontFamily: 'var(--font-body)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #d1fae5', fontFamily: 'var(--font-body)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                 {quarters.length > 1 && (
                   <select value={quarter} onChange={e => setQuarter(e.target.value)}
-                    style={{ width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e2e8f0', fontFamily: 'var(--font-body)', fontSize: '0.85rem', background: 'white' }}>
+                    style={{ width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 9, border: '1.5px solid #d1fae5', fontFamily: 'var(--font-body)', fontSize: '0.85rem', background: 'var(--white, white)' }}>
                     <option value="all">All Quarters</option>
                     {quarters.map(q => <option key={q} value={q}>{q}</option>)}
                   </select>
@@ -331,7 +369,7 @@ export default function SabbathSchool() {
                   const isThisWeek = l.id === thisWeekLesson(lessons)?.id
                   return (
                     <div key={l.id} id={'ss-lesson-' + l.id} className="ss-lesson-item" onClick={() => selectLesson(l)}
-                      style={{ padding: '13px 16px', cursor: 'pointer', borderBottom: '1px solid #f8fafc', background: isSelected ? 'var(--brand-pale)' : 'white', borderLeft: `3px solid ${isSelected ? 'var(--brand-light)' : 'transparent'}`, transition: 'all 0.15s' }}>
+                      style={{ padding: '13px 16px', cursor: 'pointer', borderBottom: '1px solid #f8faf8', background: isSelected ? 'var(--brand-pale)' : 'var(--white, white)', borderLeft: `3px solid ${isSelected ? 'var(--brand-light)' : 'transparent'}`, transition: 'all 0.15s' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ fontWeight: isSelected ? 700 : 500, color: 'var(--brand-deep)', fontSize: '0.85rem', lineHeight: 1.4 }}>{l.title}</div>
                         {isThisWeek && <span style={{ background: 'var(--gold)', color: 'white', fontSize: '0.6rem', padding: '2px 7px', borderRadius: 10, fontWeight: 900, flexShrink: 0 }}>NOW</span>}
@@ -348,12 +386,12 @@ export default function SabbathSchool() {
           {/* Content Panel */}
           <div>
             {!selected ? (
-              <div style={{ background: 'white', borderRadius: 16, padding: 48, textAlign: 'center', boxShadow: 'var(--shadow-sm)', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ background: 'var(--white, white)', borderRadius: 16, padding: 48, textAlign: 'center', boxShadow: 'var(--shadow-sm)', border: '1.5px solid #d1fae5' }}>
                 <div style={{ fontSize: '3rem', marginBottom: 12 }}>📖</div>
                 <div style={{ color: 'var(--text-light)' }}>Select a lesson to read</div>
               </div>
             ) : (
-              <div className="ss-card" style={{ background: 'white', borderRadius: 16, boxShadow: 'var(--shadow-sm)', border: '1.5px solid #e2e8f0', overflow: 'hidden' }}>
+              <div className="ss-card" style={{ background: 'var(--white, white)', borderRadius: 16, boxShadow: 'var(--shadow-sm)', border: '1.5px solid #d1fae5', overflow: 'hidden' }}>
 
                 {/* Lesson Header */}
                 <div style={{ background: 'linear-gradient(135deg,var(--brand-deep),var(--brand-mid))', padding: 'clamp(20px,4vw,32px) clamp(18px,4vw,32px) 0' }}>
@@ -379,6 +417,21 @@ export default function SabbathSchool() {
                         📄 Download PDF
                       </a>
                     )}
+                    <button
+                      onClick={async () => {
+                        const msg = `Join us this Sabbath! We're studying "${selected.title}" — read along on CCG World.\n\nhttps://ccgm-pwa.vercel.app/sabbath-school`
+                        if (navigator.share) {
+                          try {
+                            await navigator.share({ text: msg })
+                          } catch(_) {}
+                        } else {
+                          try { await navigator.clipboard.writeText(msg) } catch(_) {}
+                          alert('Message copied to clipboard!')
+                        }
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, border: '1.5px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                      🔗 Share
+                    </button>
                   </div>
 
                   {/* Tabs row + desktop T-/T+ */}
@@ -429,13 +482,13 @@ export default function SabbathSchool() {
                         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-light)' }}>No content available for this lesson.</div>
                       )}
                       {selected.discussion_questions && (
-                        <div style={{ marginTop: 32, background: '#fffbf0', borderRadius: 14, padding: '22px 24px', border: '1.5px solid #fcd34d' }}>
-                          <h4 style={{ fontFamily: 'var(--font-display)', color: '#92400e', margin: '0 0 16px', fontSize: (fontSize + 1) + 'px' }}>Discussion Questions</h4>
+                        <div style={{ marginTop: 32, background: 'var(--white, #fffbf0)', borderRadius: 14, padding: '22px 24px', border: '1.5px solid #fcd34d' }}>
+                          <h4 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-dark)', margin: '0 0 16px', fontSize: (fontSize + 1) + 'px' }}>Discussion Questions</h4>
                           <div style={{ lineHeight: 1.9, fontSize: fontSize + 'px' }}>
                             {selected.discussion_questions.split('\n').filter(Boolean).map((q, i) => (
                               <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                                 <span style={{ color: 'var(--gold)', fontWeight: 900, flexShrink: 0 }}>{i + 1}.</span>
-                                <span>{stripNum(q)}</span>
+                                <span>{q.replace(/^\d+\.\s*/, '')}</span>
                               </div>
                             ))}
                           </div>
@@ -470,7 +523,7 @@ export default function SabbathSchool() {
                             {selected.analysis_points.split('\n').filter(Boolean).map((pt, i) => (
                               <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: 'var(--brand-pale)', borderRadius: 12, padding: '14px 18px' }}>
                                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--brand-light)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 900, flexShrink: 0 }}>{i + 1}</span>
-                                <span style={{ color: 'var(--brand-deep)', fontSize: fontSize + 'px', lineHeight: 1.7 }}>{stripNum(pt)}</span>
+                                <span style={{ color: 'var(--brand-deep)', fontSize: fontSize + 'px', lineHeight: 1.7 }}>{pt.replace(/^\d+\.\s*/, '')}</span>
                               </div>
                             ))}
                           </div>
@@ -483,7 +536,7 @@ export default function SabbathSchool() {
                   {activeTab === 'divine' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {(selected.divine_message_title || selected.divine_message_speaker) && (
-                        <div style={{ background: 'linear-gradient(135deg,var(--brand-pale),#f0f7ff)', borderRadius: 16, padding: 'clamp(18px,4vw,28px)', border: '1.5px solid #bfdbfe' }}>
+                        <div style={{ background: 'linear-gradient(135deg,var(--brand-pale),#f0f7ff)', borderRadius: 16, padding: 'clamp(18px,4vw,28px)', border: '1.5px solid #bbf7d0' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                             <span style={{ fontSize: '1.6rem' }}>⛪</span>
                             <div>
@@ -493,19 +546,19 @@ export default function SabbathSchool() {
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {selected.divine_message_title && (
-                              <div style={{ background: 'white', borderRadius: 12, padding: 'clamp(12px,3vw,18px)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+                              <div style={{ background: 'var(--white, white)', borderRadius: 12, padding: 'clamp(12px,3vw,18px)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
                                 <div style={{ fontSize: (fontSize - 5) + 'px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--brand-light)', marginBottom: 6 }}>SERMON TITLE</div>
                                 <div style={{ fontWeight: 700, color: 'var(--brand-deep)', fontSize: 'clamp(1rem,3vw,1.2rem)', lineHeight: 1.35 }}>{selected.divine_message_title}</div>
                               </div>
                             )}
                             {selected.divine_message_speaker && (
-                              <div style={{ background: 'white', borderRadius: 12, padding: 'clamp(12px,3vw,18px)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+                              <div style={{ background: 'var(--white, white)', borderRadius: 12, padding: 'clamp(12px,3vw,18px)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
                                 <div style={{ fontSize: (fontSize - 5) + 'px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--brand-light)', marginBottom: 6 }}>PREACHER</div>
                                 <div style={{ fontWeight: 700, color: 'var(--brand-deep)', fontSize: fontSize + 'px' }}>🎙 {selected.divine_message_speaker}</div>
                               </div>
                             )}
                             {selected.divine_message_scripture && (
-                              <div style={{ background: 'white', borderRadius: 12, padding: 'clamp(12px,3vw,18px)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+                              <div style={{ background: 'var(--white, white)', borderRadius: 12, padding: 'clamp(12px,3vw,18px)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
                                 <div style={{ fontSize: (fontSize - 5) + 'px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--brand-light)', marginBottom: 6 }}>SCRIPTURE</div>
                                 <div style={{ fontWeight: 700, color: 'var(--gold)', fontSize: fontSize + 'px' }}>📜 {selected.divine_message_scripture}</div>
                               </div>
@@ -560,14 +613,14 @@ export default function SabbathSchool() {
                 </div>
 
                 {/* Prev / Next */}
-                <div style={{ padding: '16px clamp(16px,4vw,28px)', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ padding: '16px clamp(16px,4vw,28px)', borderTop: '1px solid #f0fdf4', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   {prevLesson ? (
-                    <button onClick={() => selectLesson(prevLesson)} style={{ background: 'none', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', color: 'var(--text-mid)', fontFamily: 'var(--font-body)', fontSize: (fontSize - 3) + 'px', flex: 1, textAlign: 'left', lineHeight: 1.4 }}>
+                    <button onClick={() => selectLesson(prevLesson)} style={{ background: 'none', border: '1.5px solid #d1fae5', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', color: 'var(--text-mid)', fontFamily: 'var(--font-body)', fontSize: (fontSize - 3) + 'px', flex: 1, textAlign: 'left', lineHeight: 1.4 }}>
                       ← {prevLesson.title.length > 30 ? prevLesson.title.slice(0, 30) + '…' : prevLesson.title}
                     </button>
                   ) : <div />}
                   {nextLesson ? (
-                    <button onClick={() => selectLesson(nextLesson)} style={{ background: 'none', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', color: 'var(--text-mid)', fontFamily: 'var(--font-body)', fontSize: (fontSize - 3) + 'px', flex: 1, textAlign: 'right', lineHeight: 1.4 }}>
+                    <button onClick={() => selectLesson(nextLesson)} style={{ background: 'none', border: '1.5px solid #d1fae5', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', color: 'var(--text-mid)', fontFamily: 'var(--font-body)', fontSize: (fontSize - 3) + 'px', flex: 1, textAlign: 'right', lineHeight: 1.4 }}>
                       {nextLesson.title.length > 30 ? nextLesson.title.slice(0, 30) + '…' : nextLesson.title} →
                     </button>
                   ) : <div />}

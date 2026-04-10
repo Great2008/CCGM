@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Navbar     from './components/Navbar'
 import Footer     from './components/Footer'
 import Home       from './pages/Home'
@@ -20,13 +21,20 @@ import Notifications from './pages/Notifications'
 import FindChurch from './pages/FindChurch'
 import PrayerWall from './pages/PrayerWall'
 import Studio     from './pages/Studio'
+import Profile    from './pages/Profile'
+import Search       from './pages/Search'
+import Certificate  from './pages/Certificate'
+import Guidelines  from './pages/Guidelines'
+import Verify       from './pages/Verify'
+import Programme    from './pages/Programme'
+import SuspensionNotice from './components/SuspensionNotice'
 
 function AppInner() {
   const { user } = useAuth()
   return (
     <>
       <Navbar />
-      <main>
+      <main style={{ overflowX: 'hidden' }}>
         <Routes>
           <Route path="/"           element={<Home />} />
           <Route path="/sermons"    element={<Sermons />} />
@@ -45,20 +53,29 @@ function AppInner() {
           <Route path="/find-church"     element={<FindChurch />} />
           <Route path="/prayer-wall"     element={<PrayerWall />} />
           <Route path="/studio"          element={<Studio />} />
+          <Route path="/profile"         element={<Profile />} />
+          <Route path="/search"          element={<Search />} />
+          <Route path="/certificate"      element={<Certificate />} />
+          <Route path="/verify"           element={<Verify />} />
+          <Route path="/programme"        element={<Programme />} />
+          <Route path="/guidelines"       element={<Guidelines />} />
         </Routes>
       </main>
       <Footer />
       <PushPrompt user={user} />
+      <SuspensionNotice />
     </>
   )
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppInner />
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppInner />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

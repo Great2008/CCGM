@@ -15,7 +15,7 @@ export default function About() {
       </div>
 
       {/* Mission & Vision */}
-      <section style={{ background: 'white', padding: '90px 5%' }}>
+      <section style={{ background: 'var(--white, white)', padding: '90px 5%' }}>
         <div className="container">
           <div className="about-mission-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
             <div>
@@ -26,7 +26,7 @@ export default function About() {
                 Christian Church Of God Mission (CCGM) was founded on the belief that every person deserves to encounter the transforming love of Jesus Christ. We are a multigenerational, multicultural family of believers united by one faith and one Lord.
               </p>
               <p style={{ color: 'var(--text-mid)', lineHeight: 1.85, marginBottom: 28, fontSize: '1rem' }}>
-                Our mission is simple: <strong style={{ color: 'var(--brand-deep)' }}>God First</strong>. We exist to worship God with everything we have, grow every believer into the fullness of Christ, and carry the Gospel to our community and beyond.
+                Our mission is simple: <strong style={{ color: 'var(--green-deep)' }}>God First</strong>. We exist to worship God with everything we have, grow every believer into the fullness of Christ, and carry the Gospel to our community and beyond.
               </p>
               <div className="about-values-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 {[
@@ -55,7 +55,7 @@ export default function About() {
       </section>
 
       {/* Stats */}
-      <section style={{ background: 'var(--brand-deep)', padding: '70px 5%' }}>
+      <section style={{ background: 'linear-gradient(135deg,#0a2612,#14532d)', padding: '70px 5%' }}>
         <div className="container">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 30, textAlign: 'center' }}>
             {[

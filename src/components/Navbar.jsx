@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import supabase from '../lib/supabase'
 
 const BELL_SEEN_KEY = 'ccg-notif-last-seen'
@@ -9,6 +10,7 @@ const NAV_LINKS = [
   { to:'/',         label:'Home' },
   { to:'/sermons',  label:'Sermons' },
   { to:'/events',   label:'Events' },
+  { to:'/studio',   label:'🎬 Studio' },
   { to:'/about',    label:'About' },
   { to:'/blog',     label:'Blog' },
   { to:'/gallery',  label:'Gallery' },
@@ -16,7 +18,6 @@ const NAV_LINKS = [
   { to:'/find-church', label:'⛪ Find Church' },
   { to:'/timeline', label:'🌐 Timeline' },
   { to:'/prayer-wall', label:'🙏 Prayer Wall' },
-  { to:'/studio',       label:'🎬 Studio' },
   { to:'/contact',  label:'Contact' },
 ]
 
@@ -33,8 +34,13 @@ export default function Navbar() {
   const [offlineOpen, setOfflineOpen] = useState(false)
   const [isLive, setIsLive]           = useState(false)
   const [unread, setUnread]           = useState(0)
+  const [activeProg, setActiveProg]   = useState(false)
   const { pathname } = useLocation()
   const { user, profile, signOut } = useAuth()
+  const { dark, toggle: toggleTheme } = useTheme()
+  const navigate = useNavigate()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQ, setSearchQ] = useState('')
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 40)
@@ -43,9 +49,22 @@ export default function Navbar() {
   }, [])
   useEffect(() => { setMenuOpen(false); setOfflineOpen(false) }, [pathname])
 
-  // Check live status
+  // Check for active programme
   useEffect(() => {
-    supabase.from('site_settings').select('value').eq('key','live').single()
+    supabase.from('programmes').select('id').eq('is_active', true).limit(1)
+      .then(({ data }) => setActiveProg(!!(data?.length)))
+    const sub = supabase.channel('nav-prog')
+      .on('postgres_changes', { event:'*', schema:'public', table:'programmes' },
+        async () => {
+          const { data } = await supabase.from('programmes').select('id').eq('is_active', true).limit(1)
+          setActiveProg(!!(data?.length))
+        })
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [])
+
+  // Check live status
+  useEffect(() => {    supabase.from('site_settings').select('value').eq('key','live').single()
       .then(({ data }) => setIsLive(!!data?.value?.isLive))
     const sub = supabase.channel('nav-live')
       .on('postgres_changes', { event:'UPDATE', schema:'public', table:'site_settings', filter:'key=eq.live' },
@@ -91,7 +110,7 @@ export default function Navbar() {
     <>
       <nav style={{
         position:'fixed', top:0, left:0, right:0, zIndex:1000,
-        background: solid ? 'rgba(15,31,61,0.97)' : 'transparent',
+        background: solid ? 'rgba(10,38,18,0.97)' : 'transparent',
         backdropFilter: solid ? 'blur(14px)' : 'none',
         boxShadow: solid ? '0 2px 24px rgba(0,0,0,0.22)' : 'none',
         transition:'background 0.3s,box-shadow 0.3s',
@@ -126,6 +145,16 @@ export default function Navbar() {
             {/* Live link */}
             <LiveLink />
 
+            {/* Programme link — only when active */}
+            {activeProg && (
+              <Link to="/programme" style={{
+                color: pathname==='/programme' ? 'var(--gold)' : '#fbbf24',
+                fontWeight: 700, fontSize:'0.82rem', padding:'6px 10px', borderRadius:6,
+                textDecoration:'none', transition:'color 0.2s', whiteSpace:'nowrap',
+                background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)',
+              }}>📅 Programme</Link>
+            )}
+
             {/* Offline dropdown */}
             <div style={{position:'relative'}}>
               <button onClick={()=>setOfflineOpen(o=>!o)} style={{
@@ -134,7 +163,7 @@ export default function Navbar() {
                 display:'flex',alignItems:'center',gap:4,fontFamily:'var(--font-body)',whiteSpace:'nowrap',
               }}>📴 Offline <span style={{fontSize:'0.55rem',opacity:0.6}}>{offlineOpen?'▲':'▼'}</span></button>
               {offlineOpen&&(
-                <div style={{position:'absolute',top:'calc(100% + 8px)',right:0,background:'white',borderRadius:12,padding:8,boxShadow:'0 12px 40px rgba(0,0,0,0.18)',minWidth:210,border:'1px solid rgba(0,0,0,0.06)',zIndex:200}}>
+                <div style={{position:'absolute',top:'calc(100% + 8px)',right:0,background:'var(--white, white)',borderRadius:12,padding:8,boxShadow:'0 12px 40px rgba(0,0,0,0.18)',minWidth:210,border:'1px solid rgba(0,0,0,0.06)',zIndex:200}}>
                   {OFFLINE_LINKS.map(({to,label,sub})=>(
                     <Link key={to} to={to} style={{display:'block',padding:'10px 14px',borderRadius:8,textDecoration:'none',transition:'background 0.15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='var(--brand-pale)'}
@@ -149,6 +178,24 @@ export default function Navbar() {
 
             
 
+            {/* Search button */}
+            <button
+              onClick={() => setSearchOpen(s => !s)}
+              title="Search"
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, borderRadius:'50%', background: searchOpen ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)', border:'none', cursor:'pointer', fontSize:'1rem', flexShrink:0, transition:'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.16)'}
+              onMouseLeave={e => e.currentTarget.style.background = searchOpen ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'}
+            >🔍</button>
+
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggleTheme}
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, borderRadius:'50%', background:'rgba(255,255,255,0.08)', border:'none', cursor:'pointer', fontSize:'1rem', flexShrink:0, transition:'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.16)'}
+              onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.08)'}
+            >{dark ? '☀️' : '🌙'}</button>
+
             {/* Notifications bell */}
             <Link to="/notifications"
               onClick={() => { localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString()); setUnread(0) }}
@@ -159,7 +206,7 @@ export default function Navbar() {
             >
               <span style={{ fontSize: '1rem' }}>🔔</span>
               {unread > 0 && (
-                <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: '#ef4444', color: 'white', fontSize: '0.62rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '2px solid rgba(15,31,61,0.97)' }}>
+                <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: '#ef4444', color: 'white', fontSize: '0.62rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '2px solid rgba(10,38,18,0.97)' }}>
                   {unread > 9 ? '9+' : unread}
                 </span>
               )}
@@ -168,9 +215,11 @@ export default function Navbar() {
             {/* Auth */}
             {user ? (
               <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:6}}>
-                <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,var(--brand-light),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:900,fontSize:'0.9rem',flexShrink:0}}>
-                  {profile?.avatar_url ? <img src={profile.avatar_url} alt="" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} /> : initials}
-                </div>
+                <Link to="/profile" title="My Profile" style={{display:'block',borderRadius:'50%',flexShrink:0,textDecoration:'none',transition:'opacity 0.2s'}} onMouseEnter={e=>e.currentTarget.style.opacity='0.8'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+                  <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,var(--brand-base),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:900,fontSize:'0.9rem',flexShrink:0,overflow:'hidden'}}>
+                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} /> : initials}
+                  </div>
+                </Link>
                 <button onClick={signOut} style={{color:'rgba(255,255,255,0.5)',background:'none',border:'none',cursor:'pointer',fontSize:'0.75rem',fontFamily:'var(--font-body)'}}>Sign out</button>
               </div>
             ) : (
@@ -214,6 +263,24 @@ export default function Navbar() {
           <button onClick={()=>setMenuOpen(false)} style={{color:'rgba(255,255,255,0.6)',background:'none',border:'none',fontSize:'1.4rem',cursor:'pointer',lineHeight:1}}>✕</button>
         </div>
         <nav style={{padding:'10px 0',flex:1}}>
+          {/* Mobile Search */}
+          <div style={{ padding: '10px 16px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={searchQ}
+                onChange={e => setSearchQ(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && searchQ.trim()) { navigate('/search?q=' + encodeURIComponent(searchQ.trim())); setMenuOpen(false); setSearchQ('') }
+                }}
+                placeholder="🔍 Search…"
+                style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, padding: '9px 14px', color: 'white', fontFamily: 'var(--font-body)', fontSize: '0.88rem', outline: 'none' }}
+              />
+              <button
+                onClick={() => { if (searchQ.trim()) { navigate('/search?q=' + encodeURIComponent(searchQ.trim())); setMenuOpen(false); setSearchQ('') } }}
+                style={{ background: 'var(--gold)', color: 'var(--brand-deep)', border: 'none', borderRadius: 9, padding: '9px 14px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'var(--font-body)', flexShrink: 0 }}
+              >Go</button>
+            </div>
+          </div>
           {NAV_LINKS.map(({to,label})=>(
             <Link key={to} to={to} style={{
               display:'block',padding:'12px 22px',
@@ -225,24 +292,51 @@ export default function Navbar() {
           ))}
           {/* Live in mobile */}
           <LiveLink mobile />
+          {/* Programme in mobile — only when active */}
+          {activeProg && (
+            <Link to="/programme" style={{
+              display:'block', padding:'12px 22px',
+              color: pathname==='/programme' ? 'var(--gold)' : '#fbbf24',
+              fontWeight:700, fontSize:'0.95rem', textDecoration:'none',
+              borderLeft: pathname==='/programme' ? '3px solid var(--gold)' : '3px solid rgba(251,191,36,0.4)',
+              background:'rgba(251,191,36,0.06)',
+            }}>📅 Programme</Link>
+          )}
           <Link to="/notifications"
             onClick={() => { localStorage.setItem(BELL_SEEN_KEY, new Date().toISOString()); setUnread(0) }}
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 22px', color: pathname === '/notifications' ? 'var(--gold)' : 'rgba(255,255,255,0.82)', fontWeight: pathname === '/notifications' ? 700 : 400, fontSize: '0.95rem', textDecoration: 'none', borderLeft: pathname === '/notifications' ? '3px solid var(--gold)' : '3px solid transparent' }}>
             <span>🔔 Notifications</span>
             {unread > 0 && <span style={{ background: '#ef4444', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: '0.7rem', fontWeight: 900 }}>{unread}</span>}
           </Link>
+          {/* Dark mode toggle — mobile */}
+          <button
+            onClick={toggleTheme}
+            style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'12px 22px', background:'transparent', border:'none', cursor:'pointer', fontFamily:'var(--font-body)', color:'rgba(255,255,255,0.75)', fontSize:'0.95rem', borderLeft:'3px solid transparent', textAlign:'left' }}
+          >
+            <span>{dark ? '☀️' : '🌙'}</span>
+            <span>{dark ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+
           <div style={{margin:'12px 20px 6px',fontSize:'0.65rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)'}}>Offline Resources</div>
           {OFFLINE_LINKS.map(({to,label,sub})=>(
             <Link key={to} to={to} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 22px',color:'rgba(255,255,255,0.75)',fontSize:'0.9rem',textDecoration:'none'}}>
               <span>{label}</span>
-              <span style={{fontSize:'0.62rem',color:'var(--brand-glow)',fontWeight:700}}>✅ Offline</span>
+              <span style={{fontSize:'0.62rem',color:'var(--brand-light)',fontWeight:700}}>✅ Offline</span>
             </Link>
           ))}
         </nav>
         <div style={{padding:'16px 20px 32px',borderTop:'1px solid rgba(255,255,255,0.08)'}}>
           {user ? (
             <div>
-              <div style={{color:'rgba(255,255,255,0.6)',fontSize:'0.8rem',marginBottom:10}}>Signed in as {profile?.display_name||profile?.full_name}</div>
+              <Link to="/profile" style={{display:'flex',alignItems:'center',gap:10,marginBottom:10,textDecoration:'none'}}>
+                <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,var(--brand-base),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:900,fontSize:'0.9rem',flexShrink:0,overflow:'hidden'}}>
+                  {profile?.avatar_url ? <img src={profile.avatar_url} alt="" style={{width:34,height:34,borderRadius:'50%',objectFit:'cover'}} /> : initials}
+                </div>
+                <div>
+                  <div style={{color:'white',fontSize:'0.85rem',fontWeight:700}}>{profile?.display_name||profile?.full_name}</div>
+                  <div style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem'}}>View Profile →</div>
+                </div>
+              </Link>
               <button onClick={signOut} style={{width:'100%',padding:'11px',borderRadius:10,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:'rgba(255,255,255,0.6)',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:'0.85rem'}}>Sign Out</button>
             </div>
           ) : (

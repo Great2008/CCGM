@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
-import { useHaptics, useNativeShare } from '../hooks/useMobileFeatures.jsx'
-import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
+import { auditLog } from '../lib/auditLog'
 
 function timeAgo(ts) {
   const s = Math.floor((Date.now() - new Date(ts)) / 1000)
@@ -18,10 +17,7 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
   const [replyText, setReplyText]     = useState('')
   const [submitting, setSubmitting]   = useState(false)
   const [loadingReplies, setLoadingReplies] = useState(false)
-  const [prayAnim, setPrayAnim]       = useState(false)
   const myPray = prayer.prayer_counts?.some(p => p.user_id === currentUserId)
-  const { impact, notification } = useHaptics()
-  const { share } = useNativeShare()
 
   const loadReplies = async () => {
     setLoadingReplies(true)
@@ -42,7 +38,6 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
   const submitReply = async () => {
     if (!replyText.trim() || submitting || !currentUserId) return
     setSubmitting(true)
-    await impact('LIGHT')
     await supabase.from('prayer_replies').insert({
       prayer_id: prayer.id,
       user_id: currentUserId,
@@ -50,36 +45,15 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
     })
     setReplyText('')
     await loadReplies()
-    await notification('SUCCESS')
     setSubmitting(false)
   }
 
-  const handlePray = async () => {
-    if (!currentUserId) return
-    // Haptic + animation on pray
-    await impact('MEDIUM')
-    setPrayAnim(true)
-    setTimeout(() => setPrayAnim(false), 600)
-    onPray(prayer.id)
-    if (!myPray) await notification('SUCCESS')
-  }
-
-  const handleShare = async () => {
-    await impact('LIGHT')
-    await share({
-      title: 'Prayer Request — CCG World',
-      text: `Please pray: "${prayer.request.substring(0, 100)}${prayer.request.length > 100 ? '...' : ''}"`,
-      url: 'https://ccgworld.org/prayer-wall',
-      dialogTitle: 'Share this Prayer Request',
-    })
-  }
-
-  const prayCount  = prayer.prayer_counts?.length || 0
+  const prayCount = prayer.prayer_counts?.length || 0
   const replyCount = prayer.reply_count || 0
 
   return (
     <div style={{
-      background: 'white', borderRadius: 18, overflow: 'hidden',
+      background: 'var(--white, white)', borderRadius: 18, overflow: 'hidden',
       boxShadow: '0 2px 16px rgba(15,31,61,0.07)',
       border: '1.5px solid #e8f0fe',
       transition: 'box-shadow 0.2s',
@@ -88,6 +62,7 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
       <div style={{ background: 'linear-gradient(135deg, var(--brand-pale), #f0f7ff)', padding: '16px 20px 12px', borderBottom: '1px solid #e8f0fe' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Anonymous avatar */}
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, var(--brand-light), var(--brand-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
               🙏
             </div>
@@ -106,6 +81,9 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
                 {prayer.category}
               </span>
             )}
+            {(isAdmin) && (
+              <button onClick={() => onDelete(prayer.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', opacity: 0.5, padding: 4, fontSize: '0.9rem' }} title="Delete">🗑</button>
+            )}
           </div>
         </div>
       </div>
@@ -118,10 +96,8 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
       </div>
 
       {/* Actions */}
-      <div style={{ padding: '0 20px 14px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        {/* Pray button with haptic + animation */}
-        <button
-          onClick={handlePray}
+      <div style={{ padding: '0 20px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button onClick={() => currentUserId && onPray(prayer.id)}
           disabled={!currentUserId}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -132,38 +108,19 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
             fontWeight: myPray ? 700 : 400, fontSize: '0.82rem',
             cursor: currentUserId ? 'pointer' : 'default',
             fontFamily: 'var(--font-body)', transition: 'all 0.15s',
-            transform: prayAnim ? 'scale(1.18)' : 'scale(1)',
           }}>
-          <span style={{
-            display: 'inline-block',
-            transition: 'transform 0.3s',
-            transform: prayAnim ? 'rotate(-15deg) scale(1.3)' : 'none',
-          }}>🙏</span>
-          {myPray ? 'Praying' : "I'll Pray"} {prayCount > 0 && <span style={{ fontWeight: 700 }}>{prayCount}</span>}
+          🙏 {myPray ? 'Praying' : 'I\'ll Pray'} {prayCount > 0 && <span style={{ fontWeight: 700 }}>{prayCount}</span>}
         </button>
 
         <button onClick={toggleReplies}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '7px 14px', borderRadius: 30,
-            border: '1.5px solid #e2e8f0', background: 'white',
+            border: '1.5px solid #e2e8f0', background: 'var(--white, white)',
             color: 'var(--text-light)', fontSize: '0.82rem',
             cursor: 'pointer', fontFamily: 'var(--font-body)',
           }}>
           💬 {replyCount > 0 ? `${replyCount} Repl${replyCount === 1 ? 'y' : 'ies'}` : 'Encourage'}
-        </button>
-
-        {/* Native share button */}
-        <button onClick={handleShare}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '7px 14px', borderRadius: 30,
-            border: '1.5px solid #e2e8f0', background: 'white',
-            color: 'var(--text-light)', fontSize: '0.82rem',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-            marginLeft: 'auto',
-          }}>
-          📤 Share
         </button>
       </div>
 
@@ -176,7 +133,7 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold), #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '0.75rem', flexShrink: 0 }}>
                 {(r.profiles?.display_name || r.profiles?.full_name || '?').charAt(0).toUpperCase()}
               </div>
-              <div style={{ flex: 1, background: 'white', borderRadius: 10, padding: '10px 14px', border: '1px solid #e8f0fe' }}>
+              <div style={{ flex: 1, background: 'var(--white, white)', borderRadius: 10, padding: '10px 14px', border: '1px solid #e8f0fe' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <span style={{ fontWeight: 700, color: 'var(--brand-deep)', fontSize: '0.82rem' }}>
                     {r.profiles?.display_name || r.profiles?.full_name || 'Member'}
@@ -208,14 +165,6 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
           )}
         </div>
       )}
-
-      <style>{`
-        @keyframes prayPop {
-          0%   { transform: scale(1) }
-          50%  { transform: scale(1.25) }
-          100% { transform: scale(1) }
-        }
-      `}</style>
     </div>
   )
 }
@@ -223,7 +172,7 @@ function PrayerCard({ prayer, currentUserId, isAdmin, onPray, onDelete, onReply 
 const CATEGORIES = ['All', 'Health', 'Family', 'Finance', 'Guidance', 'Thanksgiving', 'Relationships', 'Other']
 
 export default function PrayerWall() {
-  const { user } = useAuth()
+  const { user, canModerate } = useAuth()
   const [prayers, setPrayers]       = useState([])
   const [loading, setLoading]       = useState(true)
   const [request, setRequest]       = useState('')
@@ -232,7 +181,6 @@ export default function PrayerWall() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted]   = useState(false)
   const textareaRef = useRef(null)
-  const { impact, notification } = useHaptics()
 
   const loadPrayers = async () => {
     const { data } = await supabase
@@ -240,6 +188,7 @@ export default function PrayerWall() {
       .select('*, prayer_counts:prayer_prays(*), reply_count:prayer_replies(count)')
       .order('created_at', { ascending: false })
       .limit(60)
+    // Flatten reply count
     const normalized = (data || []).map(p => ({
       ...p,
       reply_count: p.reply_count?.[0]?.count || 0
@@ -250,9 +199,10 @@ export default function PrayerWall() {
 
   useEffect(() => {
     loadPrayers()
+    // Realtime subscription
     const sub = supabase.channel('prayer-wall')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prayer_requests' }, loadPrayers)
-      .on('postgres_changes', { event: 'DELETE',  schema: 'public', table: 'prayer_requests' }, loadPrayers)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'prayer_requests' }, loadPrayers)
       .subscribe()
     return () => supabase.removeChannel(sub)
   }, [])
@@ -260,15 +210,14 @@ export default function PrayerWall() {
   const submitPrayer = async () => {
     if (!request.trim() || submitting) return
     setSubmitting(true)
-    await impact('MEDIUM')
     await supabase.from('prayer_requests').insert({
       request: request.trim(),
       category,
+      // No user_id — completely anonymous
     })
     setRequest('')
     setCategory('Other')
     setSubmitted(true)
-    await notification('SUCCESS')
     setTimeout(() => setSubmitted(false), 4000)
     await loadPrayers()
     setSubmitting(false)
@@ -288,16 +237,21 @@ export default function PrayerWall() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this prayer request?')) return
+    const prayer = prayers.find(p => p.id === id)
     await supabase.from('prayer_prays').delete().eq('prayer_id', id)
     await supabase.from('prayer_replies').delete().eq('prayer_id', id)
     await supabase.from('prayer_requests').delete().eq('id', id)
+    // Log if moderator/admin deleted someone else's prayer
+    if (prayer && prayer.user_id !== user?.id) {
+      const authorName = prayer.profiles?.display_name || prayer.profiles?.full_name || 'member'
+      auditLog('prayer_delete', `Deleted prayer request by ${authorName}`, authorName)
+    }
     await loadPrayers()
   }
 
   const filtered = filter === 'All' ? prayers : prayers.filter(p => p.category === filter)
 
   return (
-    <PullToRefresh onRefresh={loadPrayers}>
     <div style={{ minHeight: '100vh', background: 'var(--cream)', paddingTop: 66 }}>
 
       {/* Header */}
@@ -316,17 +270,23 @@ export default function PrayerWall() {
             Share your prayer requests anonymously. Our community will pray with you and stand in faith together.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap' }}>
-            <div style={{ background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>🔒 Completely Anonymous</div>
-            <div style={{ background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>💬 Community Replies</div>
-            <div style={{ background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>🙏 Prayer Counter</div>
+            <div style={{ background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+              🔒 Completely Anonymous
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+              💬 Community Replies
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+              🙏 Prayer Counter
+            </div>
           </div>
         </div>
       </div>
 
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 5% 80px' }}>
 
-        {/* Submit box */}
-        <div style={{ background: 'white', borderRadius: 20, padding: 'clamp(20px,4vw,32px)', marginBottom: 32, boxShadow: 'var(--shadow-md)', border: '1.5px solid #e8f0fe' }}>
+        {/* Submit box — anyone can submit, no login needed */}
+        <div style={{ background: 'var(--white, white)', borderRadius: 20, padding: 'clamp(20px,4vw,32px)', marginBottom: 32, boxShadow: 'var(--shadow-md)', border: '1.5px solid #e8f0fe' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--brand-light), var(--brand-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>🙏</div>
             <div>
@@ -397,6 +357,7 @@ export default function PrayerWall() {
           ))}
         </div>
 
+        {/* Loading */}
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-light)' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: 12, animation: 'pulse 1.5s infinite' }}>🙏</div>
@@ -404,8 +365,9 @@ export default function PrayerWall() {
           </div>
         )}
 
+        {/* Empty */}
         {!loading && filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: 16, boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--white, white)', borderRadius: 16, boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ fontSize: '3rem', marginBottom: 12 }}>🙏</div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--brand-deep)', marginBottom: 8 }}>
               {filter !== 'All' ? `No ${filter} requests yet` : 'No prayer requests yet'}
@@ -414,13 +376,14 @@ export default function PrayerWall() {
           </div>
         )}
 
+        {/* Prayer cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {filtered.map(prayer => (
             <PrayerCard
               key={prayer.id}
               prayer={prayer}
               currentUserId={user?.id}
-              isAdmin={false}
+              isAdmin={canModerate}
               onPray={handlePray}
               onDelete={handleDelete}
               onReply={() => {}}
@@ -431,13 +394,12 @@ export default function PrayerWall() {
         {!user && prayers.length > 0 && (
           <div style={{ marginTop: 24, background: 'linear-gradient(135deg, var(--brand-pale), white)', border: '1.5px solid #bfdbfe', borderRadius: 14, padding: '18px 24px', textAlign: 'center' }}>
             <div style={{ fontWeight: 700, color: 'var(--brand-deep)', marginBottom: 6 }}>🙏 Want to pray for others?</div>
-            <div style={{ color: 'var(--text-mid)', fontSize: '0.85rem' }}>Sign in to mark prayers and leave encouraging replies.</div>
+            <div style={{ color: 'var(--text-mid)', fontSize: '0.85rem' }}>Sign in to mark prayers and leave encouraging replies for your brothers and sisters.</div>
           </div>
         )}
       </div>
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
-    </PullToRefresh>
   )
 }

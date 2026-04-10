@@ -1,11 +1,9 @@
-import { useState, useCallback } from 'react'
-import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
+import { useState } from 'react'
 import { useSermonsContent } from '../hooks/useContent'
+import { ShareButtonLight } from '../components/ShareButton'
 
 export default function Sermons() {
-  const [refreshKey, setRefreshKey] = useState(0)
-  const { data: sermons, loading } = useSermonsContent(refreshKey)
-  const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
+  const { data: sermons, loading } = useSermonsContent()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
 
@@ -20,7 +18,6 @@ export default function Sermons() {
   })
 
   return (
-    <PullToRefresh onRefresh={refresh}>
     <>
       <div style={{
         background: 'linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%)',
@@ -88,7 +85,7 @@ export default function Sermons() {
                             onMouseLeave={e => e.target.style.transform = 'scale(1)'} />
                           <div style={{
                             position: 'absolute', inset: 0,
-                            background: 'linear-gradient(to top, rgba(15,31,61,0.7) 0%, transparent 60%)',
+                            background: 'linear-gradient(to top, rgba(10,38,18,0.7) 0%, transparent 60%)',
                             display: 'flex', alignItems: 'flex-end', padding: 14,
                           }}>
                             {sermon.duration && (
@@ -129,7 +126,7 @@ export default function Sermons() {
                           </p>
                         )}
                         {(sermon.videoUrl || sermon.audioUrl) && (
-                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                             {sermon.videoUrl && (
                               <a href={sermon.videoUrl} target="_blank" rel="noreferrer" className="btn btn-green" style={{ padding: '9px 20px', fontSize: '0.8rem' }}>
                                 ▶ Watch
@@ -140,6 +137,19 @@ export default function Sermons() {
                                 🎧 Audio
                               </a>
                             )}
+                            <ShareButtonLight
+                              title={sermon.title}
+                              text={sermon.description || `${sermon.title}${sermon.pastor ? ` — ${sermon.pastor}` : ''}`}
+                              url={sermon.videoUrl || sermon.audioUrl || window.location.href}
+                            />
+                          </div>
+                        )}
+                        {!(sermon.videoUrl || sermon.audioUrl) && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <ShareButtonLight
+                              title={sermon.title}
+                              text={sermon.description || sermon.title}
+                            />
                           </div>
                         )}
                       </div>
@@ -159,7 +169,7 @@ export default function Sermons() {
           {!loading && sermons.length === 0 && (
             <div style={{
               textAlign: 'center', padding: '80px 20px',
-              background: 'white', borderRadius: 20, boxShadow: 'var(--shadow-sm)',
+              background: 'var(--white, white)', borderRadius: 20, boxShadow: 'var(--shadow-sm)',
             }}>
               <div style={{ fontSize: '4rem', marginBottom: 20 }}>🎙</div>
               <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.5rem', marginBottom: 12 }}>
@@ -176,6 +186,5 @@ export default function Sermons() {
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </>
-    </PullToRefresh>
   )
 }

@@ -1,0 +1,788 @@
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
+import supabase from '../lib/supabase'
+
+function timeAgo(ts) {
+  const d = Math.floor((Date.now() - new Date(ts)) / 1000)
+  if (d < 60) return 'just now'
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`
+  return `${Math.floor(d / 86400)}d ago`
+}
+
+function Avatar({ profile, size = 96 }) {
+  const init = (profile?.display_name || profile?.full_name || '?').charAt(0).toUpperCase()
+  return profile?.avatar_url
+    ? <img src={profile.avatar_url} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+    : <div style={{ width: size, height: size, borderRadius: '50%', background: 'linear-gradient(135deg,var(--brand-base),var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: size * 0.38, flexShrink: 0, fontFamily: 'var(--font-display)' }}>{init}</div>
+}
+
+const ROLE_LABELS = {
+  admin: { label: 'Admin', color: '#7c3aed', bg: '#ede9fe' },
+  member: { label: 'Member', color: 'var(--brand-mid)', bg: 'var(--brand-pale)' },
+  pastor: { label: 'Pastor', color: '#b45309', bg: '#fef3c7' },
+}
+
+export default function Profile() {
+  const { user, profile, updateProfile, signOut, churchTitle } = useAuth()
+  const { dark, toggle: toggleTheme } = useTheme()
+  const navigate = useNavigate()
+  const fileRef = useRef(null)
+
+  const [tab, setTab] = useState('info')
+  const [form, setForm] = useState({
+    display_name: '', bio: '', phone: '', location: '',
+    occupation: '', church_branch: '', birthday: '', gender: '',
+    father_name: '', mother_name: '', place_of_birth: '',
+    hometown: '', lga: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  // Church post request state
+  const [postRequest, setPostRequest] = useState('')
+  const [postSaving, setPostSaving] = useState(false)
+  const [postMsg, setPostMsg] = useState('')
+
+  // Activity state
+  const [posts, setPosts] = useState([])
+  const [prayers, setPrayers] = useState([])
+  const [bookmarks, setBookmarks] = useState([])
+  const [hymnFavs, setHymnFavs] = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
+
+  // Settings state
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwMsg, setPwMsg] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [notifEnabled, setNotifEnabled] = useState(false)
+
+  // Branches from DB
+  const [branches, setBranches] = useState([])
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (user === null) navigate('/timeline')
+  }, [user, navigate])
+
+  // Populate form from profile
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        display_name: profile.display_name || '',
+        bio: profile.bio || '',
+        phone: profile.phone || '',
+        location: profile.location || '',
+        occupation: profile.occupation || '',
+        church_branch: profile.church_branch || '',
+        birthday: profile.birthday || '',
+        gender: profile.gender || '',
+        father_name: profile.father_name || '',
+        mother_name: profile.mother_name || '',
+        place_of_birth: profile.place_of_birth || '',
+        hometown: profile.hometown || '',
+        lga: profile.lga || '',
+      })
+    }
+  }, [profile])
+
+  // Load branches from Supabase
+  useEffect(() => {
+    supabase.from('church_branches')
+      .select('id, name, location')
+      .eq('active', true)
+      .order('name')
+      .then(({ data }) => setBranches(data || []))
+  }, [])
+
+  // Load activity when tab switches
+  useEffect(() => {
+    if (tab !== 'activity' || !user) return
+    setActivityLoading(true)
+    Promise.all([
+      supabase.from('timeline_posts')
+        .select('id, body, post_type, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase.from('prayer_requests')
+        .select('id, body, created_at, prayer_counts')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase.from('devotional_bookmarks')
+        .select('id, created_at, devotionals(title, date)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase.from('hymn_favourites')
+        .select('id, created_at, hymns(id, title, author, category)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(8),
+    ]).then(([p, pr, bk, hf]) => {
+      setPosts(p.data || [])
+      setPrayers(pr.data || [])
+      setBookmarks(bk.data || [])
+      setHymnFavs(hf.data || [])
+      setActivityLoading(false)
+    })
+  }, [tab, user])
+
+  // Notification permission check
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotifEnabled(Notification.permission === 'granted')
+    }
+  }, [])
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setUploadingAvatar(true)
+    const ext = file.name.split('.').pop()
+    const path = `avatars/${user.id}.${ext}`
+    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    if (!upErr) {
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      await updateProfile({ avatar_url: publicUrl })
+    }
+    setUploadingAvatar(false)
+  }
+
+  const handleSave = async () => {
+    setSaving(true); setSaveError('')
+    const payload = {
+      ...form,
+      birthday: form.birthday?.trim() || null,
+    }
+    // If gender is being set for the first time and no church_title exists,
+    // auto-assign Brother or Sister
+    if (form.gender && !profile?.church_title && !profile?.pending_church_post) {
+      payload.church_title = form.gender === 'Female' ? 'Sister' : 'Brother'
+    }
+    const err = await updateProfile(payload)
+    if (err) setSaveError(err.message || 'Failed to save.')
+    else { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+    setSaving(false)
+  }
+
+  const handlePostRequest = async () => {
+    if (!postRequest) return
+    setPostSaving(true); setPostMsg('')
+    const ORDAINED = ['Deacon','Deaconess','Elder','Evangelist','Prophet','Pastor','Apostle']
+    const autoApproved = !ORDAINED.includes(postRequest)
+    const updates = autoApproved
+      ? { church_title: postRequest, pending_church_post: null }
+      : { pending_church_post: postRequest }
+    const err = await updateProfile(updates)
+    if (err) {
+      setPostMsg('Failed to submit request.')
+    } else {
+      setPostMsg(autoApproved
+        ? `✅ Post updated to ${postRequest}.`
+        : `⏳ Request for "${postRequest}" submitted — awaiting admin approval.`
+      )
+      setPostRequest('')
+    }
+    setPostSaving(false)
+  }
+
+  const handlePasswordChange = async () => {
+    if (pwForm.next !== pwForm.confirm) { setPwMsg('Passwords do not match.'); return }
+    if (pwForm.next.length < 8) { setPwMsg('Password must be at least 8 characters.'); return }
+    setPwSaving(true); setPwMsg('')
+    const { error } = await supabase.auth.updateUser({ password: pwForm.next })
+    if (error) setPwMsg(error.message)
+    else { setPwMsg('✅ Password updated successfully.'); setPwForm({ current: '', next: '', confirm: '' }) }
+    setPwSaving(false)
+  }
+
+  const handleNotifToggle = async () => {
+    if (!('Notification' in window)) return
+    if (Notification.permission === 'granted') {
+      setNotifEnabled(false) // can't revoke programmatically, just toggle UI note
+    } else {
+      const perm = await Notification.requestPermission()
+      setNotifEnabled(perm === 'granted')
+    }
+  }
+
+  const POST_TYPE_COLORS = { update: 'var(--brand-light)', testimony: '#7c3aed', prayer: '#059669' }
+  const POST_TYPE_LABELS = { update: '📝 Update', testimony: '🙌 Testimony', prayer: '🙏 Prayer' }
+
+  const role = profile?.role || 'member'
+  const roleInfo = ROLE_LABELS[role] || ROLE_LABELS.member
+
+  // Cape stripes: null = no cape, 0 = plain green, 1 = one stripe, 2 = two stripes
+  const capeStripes = churchTitle === 'Apostle' ? 2
+    : churchTitle === 'Elder' ? 1
+    : ['Pastor','Evangelist','Deacon','Deaconess','Prophet'].includes(churchTitle) ? 0
+    : null
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : ''
+
+  if (!user || !profile) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--off-white)' }}>
+        <div style={{ width: 40, height: 40, border: '3px solid var(--brand-pale)', borderTopColor: 'var(--brand-base)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--off-white)', paddingTop: 66 }}>
+
+      {/* ── Hero header ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, var(--brand-deep) 0%, var(--brand-mid) 60%, #1a6b3c 100%)',
+        padding: 'clamp(36px,6vw,64px) 5% 0',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* decorative glow */}
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(ellipse at 80% 40%, rgba(245,158,11,0.12) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(37,99,235,0.1) 0%, transparent 50%)', pointerEvents: 'none' }} />
+
+        <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(16px,3vw,32px)', flexWrap: 'wrap' }}>
+
+            {/* Avatar */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ borderRadius: '50%', border: '4px solid rgba(255,255,255,0.2)', padding: 2, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
+                {uploadingAvatar
+                  ? <div style={{ width: 96, height: 96, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>⏳</div>
+                  : <Avatar profile={profile} size={96} />
+                }
+              </div>
+              <button
+                onClick={() => fileRef.current?.click()}
+                title="Change avatar"
+                style={{ position: 'absolute', bottom: 4, right: 4, width: 28, height: 28, borderRadius: '50%', background: 'var(--gold)', border: '2px solid var(--brand-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+              >📷</button>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+            </div>
+
+            {/* Name + meta */}
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+                <h1 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 900, lineHeight: 1.1 }}>
+                  {profile.full_name || profile.display_name || 'Member'}
+                </h1>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 12px', borderRadius: 20, background: roleInfo.bg, color: roleInfo.color, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  {roleInfo.label}
+                </span>
+                {churchTitle && (
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fbbf24', letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.25)' }}>
+                    ✝️ {churchTitle}
+                  </span>
+                )}
+              </div>
+
+              {/* Cape stripe indicator */}
+              {capeStripes !== null && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <div style={{ position: 'relative', width: 56, height: 16, borderRadius: 4, background: '#166534', overflow: 'hidden', flexShrink: 0 }}>
+                    {capeStripes >= 1 && (
+                      <div style={{ position: 'absolute', left: 4, right: 4, top: capeStripes === 2 ? 4 : '50%', transform: capeStripes === 1 ? 'translateY(-50%)' : 'none', height: 2, background: '#fbbf24', borderRadius: 1 }} />
+                    )}
+                    {capeStripes === 2 && (
+                      <div style={{ position: 'absolute', left: 4, right: 4, bottom: 4, height: 2, background: '#fbbf24', borderRadius: 1 }} />
+                    )}
+                  </div>
+                </div>
+              )}
+              {profile.display_name && profile.display_name !== profile.full_name && (
+                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem', marginBottom: 4 }}>@{profile.display_name}</div>
+              )}
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+                {memberSince && (
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    🗓 Member since {memberSince}
+                  </span>
+                )}
+                {profile.church_branch && (
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    ⛪ {profile.church_branch}
+                  </span>
+                )}
+                {profile.location && (
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    📍 {profile.location}
+                  </span>
+                )}
+              </div>
+              {profile.bio && (
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', marginTop: 8, lineHeight: 1.6, maxWidth: 480 }}>{profile.bio}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 0, marginTop: 8 }}>
+            {[
+              { id: 'info', label: '✏️ My Info' },
+              { id: 'activity', label: '📋 My Activity' },
+              { id: 'settings', label: '⚙️ Settings' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  padding: '12px 22px', border: 'none', cursor: 'pointer',
+                  background: 'transparent', fontFamily: 'var(--font-body)',
+                  fontSize: '0.84rem', fontWeight: tab === t.id ? 700 : 400,
+                  color: tab === t.id ? 'white' : 'rgba(255,255,255,0.5)',
+                  borderBottom: tab === t.id ? '3px solid var(--gold)' : '3px solid transparent',
+                  transition: 'all 0.2s', whiteSpace: 'nowrap',
+                }}
+              >{t.label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tab content ── */}
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(24px,4vw,40px) 5% 60px' }}>
+
+        {/* ─── MY INFO TAB ─── */}
+        {tab === 'info' && (
+          <div style={{ display: 'grid', gap: 20 }}>
+            <div style={{ background: 'var(--white, white)', borderRadius: 18, padding: 'clamp(20px,4vw,36px)', boxShadow: 'var(--shadow-sm)', border: '1px solid rgba(15,31,61,0.06)' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.2rem', marginBottom: 24, paddingBottom: 14, borderBottom: '1px solid var(--brand-pale)' }}>Personal Information</h2>
+
+              {/* Church title + cape display (read-only, set by admin) */}
+              {churchTitle && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '12px 16px', borderRadius: 12, background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1.5px solid #bbf7d0' }}>
+                  <div style={{ position: 'relative', width: 48, height: 18, borderRadius: 4, background: '#166534', flexShrink: 0 }}>
+                    {capeStripes >= 1 && (
+                      <div style={{ position: 'absolute', left: 4, right: 4, top: capeStripes === 2 ? 4 : '50%', transform: capeStripes === 1 ? 'translateY(-50%)' : 'none', height: 2, background: '#fbbf24', borderRadius: 1 }} />
+                    )}
+                    {capeStripes === 2 && (
+                      <div style={{ position: 'absolute', left: 4, right: 4, bottom: 4, height: 2, background: '#fbbf24', borderRadius: 1 }} />
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 700, color: '#166534', fontSize: '0.95rem' }}>✝️ {churchTitle}</div>
+                  <div style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#6b7280' }}>Set by admin</div>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
+                <Field label="Display Name" value={form.display_name} onChange={v => setForm(f => ({ ...f, display_name: v }))} placeholder="How others see you" />
+                <Field label="Phone" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="+1 555 000 0000" type="tel" />
+                <Field label="Location / City" value={form.location} onChange={v => setForm(f => ({ ...f, location: v }))} placeholder="e.g. Accra, Ghana" />
+                <Field label="Occupation" value={form.occupation} onChange={v => setForm(f => ({ ...f, occupation: v }))} placeholder="e.g. Teacher, Engineer..." />
+                <Field label="Birthday (optional)" value={form.birthday} onChange={v => setForm(f => ({ ...f, birthday: v }))} type="date" />
+
+                {/* Gender */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Gender</label>
+                  <select
+                    value={form.gender}
+                    onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
+                    style={{ padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0', background: 'var(--white, white)', fontSize: '0.9rem', color: form.gender ? 'var(--text-dark)' : '#9ca3af', fontFamily: 'var(--font-body)', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a7c59' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: 36 }}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-base)'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                  >
+                    <option value="">— Select gender —</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+
+                {/* Church Branch dropdown */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Church Branch</label>
+                  <select
+                    value={form.church_branch}
+                    onChange={e => setForm(f => ({ ...f, church_branch: e.target.value }))}
+                    style={{ padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0', background: 'var(--white, white)', fontSize: '0.9rem', color: form.church_branch ? 'var(--text-dark)' : '#9ca3af', fontFamily: 'var(--font-body)', outline: 'none', cursor: 'pointer', transition: 'border-color 0.2s', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a7c59' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: 36 }}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-base)'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                  >
+                    <option value="">— Select your branch —</option>
+                    {branches.length === 0 && (
+                      <option disabled>Loading branches...</option>
+                    )}
+                    {branches.map(b => (
+                      <option key={b.id} value={b.name}>{b.name}{b.location ? ` — ${b.location}` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Bio</label>
+                <textarea
+                  value={form.bio}
+                  onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+                  placeholder="A short bio about yourself..."
+                  rows={3}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontFamily: 'var(--font-body)', resize: 'vertical', outline: 'none', lineHeight: 1.6, color: 'var(--text-dark)', transition: 'border-color 0.2s' }}
+                  onFocus={e => e.target.style.borderColor = 'var(--brand-base)'}
+                  onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                />
+              </div>
+
+              {/* Birth Record — used on Birth Certificate */}
+              <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--brand-pale)' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1rem', marginBottom: 6 }}>🎂 Birth Record</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: '0.78rem', marginBottom: 16, lineHeight: 1.5 }}>
+                  This information appears on your Church Birth Certificate.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
+                  <Field label="Father's Name" value={form.father_name} onChange={v => setForm(f => ({ ...f, father_name: v }))} placeholder="e.g. John Okara" />
+                  <Field label="Mother's Name" value={form.mother_name} onChange={v => setForm(f => ({ ...f, mother_name: v }))} placeholder="e.g. Mary Okara" />
+                  <Field label="Place of Birth" value={form.place_of_birth} onChange={v => setForm(f => ({ ...f, place_of_birth: v }))} placeholder="e.g. Igwuruta" />
+                  <Field label="Home Town / Village" value={form.hometown} onChange={v => setForm(f => ({ ...f, hometown: v }))} placeholder="e.g. Omoku" />
+                  <Field label="L.G. Area / Division" value={form.lga} onChange={v => setForm(f => ({ ...f, lga: v }))} placeholder="e.g. Ogba/Egbema/Ndoni" />
+                </div>
+              </div>
+
+              {saveError && (
+                <div style={{ marginTop: 14, padding: '10px 16px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.85rem' }}>
+                  ❌ {saveError}
+                </div>
+              )}
+
+              <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{ padding: '11px 32px', borderRadius: 40, background: saving ? '#9ca3af' : 'linear-gradient(135deg,var(--brand-base),var(--brand-mid))', color: 'white', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'var(--font-body)', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : 'var(--shadow-sm)', transition: 'all 0.2s', letterSpacing: '0.06em' }}
+                >
+                  {saving ? 'Saving…' : '💾 Save Changes'}
+                </button>
+                {saved && <span style={{ color: 'var(--brand-base)', fontWeight: 700, fontSize: '0.88rem', animation: 'fadeIn 0.3s ease' }}>✅ Saved!</span>}
+              </div>
+            </div>
+
+            {/* ── Church Post ── */}
+            <div style={{ background: 'var(--white, white)', borderRadius: 18, padding: 'clamp(20px,4vw,36px)', boxShadow: 'var(--shadow-sm)', border: '1px solid rgba(15,31,61,0.06)' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.2rem', marginBottom: 6, paddingBottom: 14, borderBottom: '1px solid var(--brand-pale)' }}>✝️ Church Post</h2>
+
+              {/* Current post status */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+                {profile?.church_title && (
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, padding: '4px 14px', borderRadius: 20, background: '#f0fdf4', color: '#166534', border: '1.5px solid #bbf7d0' }}>
+                    ✅ Current: {profile.church_title}
+                  </span>
+                )}
+                {profile?.pending_church_post && (
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, padding: '4px 14px', borderRadius: 20, background: '#fef3c7', color: '#92400e', border: '1.5px solid #fde68a' }}>
+                    ⏳ Pending approval: {profile.pending_church_post}
+                  </span>
+                )}
+                {!profile?.church_title && !profile?.pending_church_post && (
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-light)' }}>No post assigned yet.</span>
+                )}
+              </div>
+
+              {/* Request a new post */}
+              {!profile?.pending_church_post && (
+                <div>
+                  <p style={{ fontSize: '0.84rem', color: 'var(--text-mid)', marginBottom: 14, lineHeight: 1.6 }}>
+                    {profile?.church_title
+                      ? 'Request a change to your church post. Brother and Sister are instant — ordained titles require admin approval.'
+                      : 'Select your church post. Brother and Sister are assigned immediately — ordained titles require admin approval.'
+                    }
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <select
+                        value={postRequest}
+                        onChange={e => setPostRequest(e.target.value)}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0', background: 'var(--white, white)', fontSize: '0.9rem', fontFamily: 'var(--font-body)', outline: 'none', cursor: 'pointer', appearance: 'none', color: postRequest ? 'var(--text-dark)' : '#9ca3af' }}
+                        onFocus={e => e.target.style.borderColor = 'var(--brand-base)'}
+                        onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                      >
+                        <option value="">— Select post —</option>
+                        {(form.gender || profile?.gender) === 'Male' || (!form.gender && !profile?.gender) ? <>
+                          <option value="Brother">Brother ✓ instant</option>
+                          <option value="Deacon">Deacon — needs approval</option>
+                          <option value="Elder">Elder — needs approval</option>
+                          <option value="Evangelist">Evangelist — needs approval</option>
+                          <option value="Prophet">Prophet — needs approval</option>
+                          <option value="Pastor">Pastor — needs approval</option>
+                          <option value="Apostle">Apostle — needs approval</option>
+                        </> : null}
+                        {(form.gender || profile?.gender) === 'Female' ? <>
+                          <option value="Sister">Sister ✓ instant</option>
+                          <option value="Deaconess">Deaconess — needs approval</option>
+                          <option value="Evangelist">Evangelist — needs approval</option>
+                          <option value="Prophet">Prophet — needs approval</option>
+                          <option value="Pastor">Pastor — needs approval</option>
+                          <option value="Apostle">Apostle — needs approval</option>
+                        </> : null}
+                      </select>
+                    </div>
+                    <button
+                      onClick={handlePostRequest}
+                      disabled={postSaving || !postRequest}
+                      style={{ padding: '10px 24px', borderRadius: 40, border: 'none', background: (!postRequest || postSaving) ? '#9ca3af' : 'linear-gradient(135deg,var(--brand-base),var(--brand-mid))', color: 'white', fontWeight: 700, fontSize: '0.86rem', fontFamily: 'var(--font-body)', cursor: (!postRequest || postSaving) ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      {postSaving ? 'Submitting…' : ['Deacon','Deaconess','Elder','Evangelist','Prophet','Pastor','Apostle'].includes(postRequest) ? 'Request Post' : 'Update Post'}
+                    </button>
+                  </div>
+                  {postRequest && ['Deacon','Deaconess','Elder','Evangelist','Prophet','Pastor','Apostle'].includes(postRequest) && (
+                    <div style={{ marginTop: 10, fontSize: '0.78rem', color: '#92400e', background: '#fff7ed', padding: '8px 12px', borderRadius: 8 }}>
+                      ⏳ <strong>{postRequest}</strong> requires admin approval. Your current post stays active until it's approved.
+                    </div>
+                  )}
+                  {postMsg && (
+                    <div style={{ marginTop: 12, fontSize: '0.84rem', fontWeight: 600, color: postMsg.startsWith('✅') ? '#166534' : '#dc2626' }}>
+                      {postMsg}
+                    </div>
+                  )}
+                </div>
+              )}
+              {profile?.pending_church_post && (
+                <div style={{ fontSize: '0.83rem', color: '#92400e', lineHeight: 1.6 }}>
+                  Your request for <strong>{profile.pending_church_post}</strong> is under review. You'll see your current post updated once an admin approves it.
+                  <button
+                    onClick={async () => { await updateProfile({ pending_church_post: null }); setPostMsg('') }}
+                    style={{ marginLeft: 12, fontSize: '0.78rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', textDecoration: 'underline' }}
+                  >
+                    Cancel request
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── MY ACTIVITY TAB ─── */}
+        {tab === 'activity' && (
+          <div style={{ display: 'grid', gap: 24 }}>
+            {activityLoading ? (
+              <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-light)' }}>
+                <div style={{ width: 36, height: 36, border: '3px solid var(--brand-pale)', borderTopColor: 'var(--brand-base)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }} />
+                Loading activity…
+              </div>
+            ) : (
+              <>
+                {/* Timeline Posts */}
+                <ActivitySection title="🌐 Recent Timeline Posts" empty={posts.length === 0} emptyText="No posts yet.">
+                  {posts.map(p => (
+                    <div key={p.id} style={{ padding: '14px 18px', borderRadius: 12, background: '#f8faf8', border: '1px solid #e8f0e8', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: (POST_TYPE_COLORS[p.post_type] || 'var(--brand-light)') + '18', color: POST_TYPE_COLORS[p.post_type] || 'var(--brand-light)', flexShrink: 0, marginTop: 2 }}>
+                        {POST_TYPE_LABELS[p.post_type] || '📝'}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ color: 'var(--text-mid)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{p.body}</p>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: 4, display: 'block' }}>{timeAgo(p.created_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </ActivitySection>
+
+                {/* Prayer Requests */}
+                <ActivitySection title="🙏 My Prayer Requests" empty={prayers.length === 0} emptyText="No prayer requests submitted.">
+                  {prayers.map(p => (
+                    <div key={p.id} style={{ padding: '14px 18px', borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <p style={{ color: 'var(--text-mid)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, flex: 1 }}>{p.body}</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{timeAgo(p.created_at)}</span>
+                        {p.prayer_counts?.length > 0 && (
+                          <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>🙌 {p.prayer_counts.length} praying</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </ActivitySection>
+
+                {/* Bookmarked Devotionals */}
+                <ActivitySection title="🌅 Bookmarked Devotionals" empty={bookmarks.length === 0} emptyText="No bookmarked devotionals yet.">
+                  {bookmarks.map(b => (
+                    <div key={b.id} style={{ padding: '14px 18px', borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-dark)', fontSize: '0.9rem', fontWeight: 600 }}>{b.devotionals?.title || 'Devotional'}</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{b.devotionals?.date || ''}</span>
+                    </div>
+                  ))}
+                </ActivitySection>
+
+                {/* Favourite Hymns */}
+                <ActivitySection title="❤️ Favourite Hymns" empty={hymnFavs.length === 0} emptyText="No favourite hymns yet — tap ❤️ on any hymn to save it.">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+                    {hymnFavs.map(f => (
+                      <div key={f.id} style={{ padding: '12px 16px', borderRadius: 12, background: 'linear-gradient(135deg,var(--brand-pale),#f0fdf4)', border: '1px solid var(--brand-pale)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: '0.9rem' }}>🎵</span>
+                          <span style={{ color: 'var(--text-dark)', fontSize: '0.88rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>{f.hymns?.title || 'Hymn'}</span>
+                        </div>
+                        {f.hymns?.author && <span style={{ color: 'var(--text-light)', fontSize: '0.75rem' }}>{f.hymns.author}</span>}
+                        {f.hymns?.category && (
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--brand-pale)', color: 'var(--brand-mid)', alignSelf: 'flex-start', marginTop: 2 }}>{f.hymns.category}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ActivitySection>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ─── SETTINGS TAB ─── */}
+        {tab === 'settings' && (
+          <div style={{ display: 'grid', gap: 20 }}>
+
+            {/* Membership Certificate */}
+            <div style={{ background: 'var(--white, white)', borderRadius: 16, padding: '22px 24px', boxShadow: 'var(--shadow-sm)', border: '1px solid #e2e8f0', marginBottom: 20 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.15rem', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--brand-pale)' }}>🏅 Membership Certificate</h2>
+              <p style={{ color: 'var(--text-mid)', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: 16 }}>
+                Download your official CCG World membership certificate as a shareable image.
+              </p>
+              <Link to="/certificate" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 30, background: 'linear-gradient(135deg,var(--brand-base),var(--brand-mid))', color: 'white', fontWeight: 700, fontSize: '0.88rem', textDecoration: 'none' }}>
+                🏅 Get My Certificate →
+              </Link>
+            </div>
+
+            {/* Change Password */}
+            <div style={{ background: 'var(--white, white)', borderRadius: 18, padding: 'clamp(20px,4vw,32px)', boxShadow: 'var(--shadow-sm)', border: '1px solid rgba(15,31,61,0.06)' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.15rem', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid var(--brand-pale)' }}>🔐 Change Password</h2>
+              <div style={{ display: 'grid', gap: 14, maxWidth: 400 }}>
+                <Field label="New Password" value={pwForm.next} onChange={v => setPwForm(f => ({ ...f, next: v }))} type="password" placeholder="At least 8 characters" />
+                <Field label="Confirm New Password" value={pwForm.confirm} onChange={v => setPwForm(f => ({ ...f, confirm: v }))} type="password" placeholder="Repeat new password" />
+              </div>
+              {pwMsg && (
+                <div style={{ marginTop: 14, padding: '10px 16px', borderRadius: 10, background: pwMsg.startsWith('✅') ? '#f0fdf4' : '#fef2f2', border: `1px solid ${pwMsg.startsWith('✅') ? '#bbf7d0' : '#fecaca'}`, color: pwMsg.startsWith('✅') ? '#059669' : '#dc2626', fontSize: '0.85rem' }}>
+                  {pwMsg}
+                </div>
+              )}
+              <button
+                onClick={handlePasswordChange}
+                disabled={pwSaving || !pwForm.next || !pwForm.confirm}
+                style={{ marginTop: 18, padding: '10px 28px', borderRadius: 40, background: (pwSaving || !pwForm.next) ? '#9ca3af' : 'var(--brand-mid)', color: 'white', fontWeight: 700, fontSize: '0.86rem', fontFamily: 'var(--font-body)', border: 'none', cursor: (pwSaving || !pwForm.next) ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+              >{pwSaving ? 'Updating…' : 'Update Password'}</button>
+            </div>
+
+            {/* Dark Mode */}
+            <div style={{ background: 'var(--white, white)', borderRadius: 18, padding: 'clamp(20px,4vw,32px)', boxShadow: 'var(--shadow-sm)', border: '1px solid rgba(15,31,61,0.06)' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.15rem', marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid var(--brand-pale)' }}>{dark ? '☀️' : '🌙'} Appearance</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem', marginBottom: 4 }}>Dark Mode</div>
+                  <div style={{ color: 'var(--text-light)', fontSize: '0.82rem' }}>{dark ? 'Dark mode is on.' : 'Switch to a darker, easier-on-the-eyes theme.'}</div>
+                </div>
+                <button
+                  onClick={toggleTheme}
+                  style={{ width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', background: dark ? 'var(--brand-base)' : '#d1d5db', position: 'relative', transition: 'background 0.25s', flexShrink: 0 }}
+                >
+                  <span style={{ position: 'absolute', top: 3, left: dark ? 26 : 3, width: 22, height: 22, borderRadius: '50%', background: 'var(--white, white)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.25s' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Push Notifications */}
+            <div style={{ background: 'var(--white, white)', borderRadius: 18, padding: 'clamp(20px,4vw,32px)', boxShadow: 'var(--shadow-sm)', border: '1px solid rgba(15,31,61,0.06)' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.15rem', marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid var(--brand-pale)' }}>🔔 Push Notifications</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem', marginBottom: 4 }}>Receive push notifications</div>
+                  <div style={{ color: 'var(--text-light)', fontSize: '0.82rem' }}>
+                    {notifEnabled ? 'Notifications are enabled for this device.' : 'Enable to receive alerts from CCG World.'}
+                  </div>
+                </div>
+                <button
+                  onClick={handleNotifToggle}
+                  style={{ width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', background: notifEnabled ? 'var(--brand-base)' : '#d1d5db', position: 'relative', transition: 'background 0.25s', flexShrink: 0 }}
+                >
+                  <span style={{ position: 'absolute', top: 3, left: notifEnabled ? 26 : 3, width: 22, height: 22, borderRadius: '50%', background: 'var(--white, white)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.25s' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Account info */}
+            <div style={{ background: 'var(--white, white)', borderRadius: 18, padding: 'clamp(20px,4vw,32px)', boxShadow: 'var(--shadow-sm)', border: '1px solid rgba(15,31,61,0.06)' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.15rem', marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid var(--brand-pale)' }}>👤 Account</h2>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Email</div>
+                  <div style={{ color: 'var(--text-dark)', fontSize: '0.95rem' }}>{user?.email}</div>
+                </div>
+                <button
+                  onClick={() => { signOut(); navigate('/') }}
+                  style={{ padding: '10px 24px', borderRadius: 40, border: '1.5px solid #e2e8f0', background: 'transparent', color: 'var(--text-mid)', fontWeight: 700, fontSize: '0.84rem', fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8faf8'; e.currentTarget.style.borderColor = 'var(--brand-base)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#e2e8f0' }}
+                >Sign Out</button>
+              </div>
+            </div>
+
+            {/* Danger zone */}
+            <div style={{ background: '#fff5f5', borderRadius: 18, padding: 'clamp(20px,4vw,32px)', boxShadow: 'var(--shadow-sm)', border: '1.5px solid #fecaca' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', color: '#dc2626', fontSize: '1.15rem', marginBottom: 8 }}>⚠️ Danger Zone</h2>
+              <p style={{ color: '#7f1d1d', fontSize: '0.85rem', marginBottom: 18, lineHeight: 1.6 }}>Deleting your account is permanent and cannot be undone. All your posts, prayers, and data will be removed.</p>
+              {!deleteConfirm ? (
+                <button
+                  onClick={() => setDeleteConfirm(true)}
+                  style={{ padding: '10px 24px', borderRadius: 40, border: '1.5px solid #fca5a5', background: 'transparent', color: '#dc2626', fontWeight: 700, fontSize: '0.84rem', fontFamily: 'var(--font-body)', cursor: 'pointer' }}
+                >Delete My Account</button>
+              ) : (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#dc2626', fontWeight: 600 }}>Are you sure? This cannot be undone.</span>
+                  <button
+                    onClick={async () => {
+                      await supabase.auth.admin?.deleteUser(user.id).catch(() => {})
+                      await signOut()
+                      navigate('/')
+                    }}
+                    style={{ padding: '9px 22px', borderRadius: 40, background: '#dc2626', border: 'none', color: 'white', fontWeight: 700, fontSize: '0.84rem', fontFamily: 'var(--font-body)', cursor: 'pointer' }}
+                  >Yes, delete</button>
+                  <button
+                    onClick={() => setDeleteConfirm(false)}
+                    style={{ padding: '9px 22px', borderRadius: 40, border: '1.5px solid #e2e8f0', background: 'transparent', color: 'var(--text-mid)', fontWeight: 600, fontSize: '0.84rem', fontFamily: 'var(--font-body)', cursor: 'pointer' }}
+                  >Cancel</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
+      `}</style>
+    </div>
+  )
+}
+
+// ── Reusable field component ──
+function Field({ label, value, onChange, placeholder, type = 'text' }) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{ padding: '10px 14px', borderRadius: 10, border: `1.5px solid ${focused ? 'var(--brand-base)' : '#e2e8f0'}`, fontSize: '0.9rem', fontFamily: 'var(--font-body)', outline: 'none', color: 'var(--text-dark)', background: 'var(--white, white)', transition: 'border-color 0.2s' }}
+      />
+    </div>
+  )
+}
+
+// ── Activity section wrapper ──
+function ActivitySection({ title, children, empty, emptyText }) {
+  return (
+    <div style={{ background: 'var(--white, white)', borderRadius: 18, padding: 'clamp(18px,3vw,28px)', boxShadow: 'var(--shadow-sm)', border: '1px solid rgba(15,31,61,0.06)' }}>
+      <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: '1.05rem', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--brand-pale)' }}>{title}</h3>
+      {empty
+        ? <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', textAlign: 'center', padding: '20px 0' }}>{emptyText}</p>
+        : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+      }
+    </div>
+  )
+}

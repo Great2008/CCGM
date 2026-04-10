@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PullToRefresh } from '../hooks/usePullToRefresh.jsx'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
@@ -77,7 +76,6 @@ export default function Notifications() {
   const filtered = filter === 'all' ? logs : logs.filter(l => l.tag === filter)
 
   return (
-    <PullToRefresh onRefresh={load}>
     <div style={{ minHeight: '100vh', background: 'var(--bg-soft, #f8fafc)', paddingTop: 90 }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px 60px' }}>
 
@@ -163,7 +161,7 @@ export default function Notifications() {
         ) : filtered.length === 0 ? (
           <div style={{
             textAlign: 'center', padding: '60px 24px',
-            background: 'white', borderRadius: 16,
+            background: 'var(--white, white)', borderRadius: 16,
             border: '1.5px dashed #e2e8f0', color: 'var(--text-light)',
           }}>
             <div style={{ fontSize: '3rem', marginBottom: 12 }}>📭</div>
@@ -183,7 +181,6 @@ export default function Notifications() {
         )}
       </div>
     </div>
-    </PullToRefresh>
   )
 }
 
@@ -193,7 +190,7 @@ function NotifCard({ log }) {
 
   const inner = (
     <div style={{
-      background: 'white', borderRadius: 14, padding: '16px 18px',
+      background: 'var(--white, white)', borderRadius: 14, padding: '16px 18px',
       boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       border: '1.5px solid #f1f5f9',
       display: 'flex', gap: 14, alignItems: 'flex-start',

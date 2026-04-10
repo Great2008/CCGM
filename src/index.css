@@ -1,35 +1,239 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* CCG World palette — deep navy + electric blue + gold accent */
-  --brand-deep:   #0f1f3d;   /* deep navy */
-  --brand-mid:    #1a3a6b;   /* rich blue */
-  --brand-light:  #2563eb;   /* electric blue */
-  --brand-glow:   #3b82f6;   /* bright blue */
-  --brand-pale:   #eff6ff;   /* ice blue */
-  --gold:         #f59e0b;   /* amber gold */
+  /* CCG World palette — forest green + gold accent */
+  --brand-deep:   #0a2612;   /* darkest forest green */
+  --brand-dark:   #14532d;   /* deep green */
+  --brand-mid:    #166534;   /* rich green */
+  --brand-base:   #16a34a;   /* main brand green */
+  --brand-light:  #22c55e;   /* bright green */
+  --brand-glow:   #4ade80;   /* vivid accent */
+  --brand-pale:   #dcfce7;   /* mint pale */
+  --brand-mist:   #f0fdf4;   /* near-white green tint */
+
+  --gold:         #f59e0b;
   --gold-light:   #fcd34d;
+
   --white:        #ffffff;
-  --cream:        #f8fafc;
-  --text-dark:    #0f172a;
-  --text-mid:     #334155;
-  --text-light:   #64748b;
+  --milk:         #fdfcf8;   /* warm milk white */
+  --cream:        #f5f0e8;   /* warm cream */
+  --off-white:    #f8faf8;   /* green-tinted off-white */
+
+  --text-dark:    #052e10;
+  --text-mid:     #1a4728;
+  --text-light:   #4a7c59;
+  --text-muted:   #86a892;
+
   --radius-sm:    8px;
   --radius-md:    14px;
   --radius-lg:    24px;
-  --shadow-sm:    0 2px 12px rgba(15,31,61,0.08);
-  --shadow-md:    0 8px 32px rgba(15,31,61,0.15);
-  --shadow-lg:    0 24px 64px rgba(15,31,61,0.22);
+  --shadow-sm:    0 2px 12px rgba(10,38,18,0.08);
+  --shadow-md:    0 8px 32px rgba(10,38,18,0.15);
+  --shadow-lg:    0 24px 64px rgba(10,38,18,0.22);
   --transition:   0.25s ease;
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body:    'Lato', system-ui, sans-serif;
   --font-mono:    'Courier New', monospace;
 
-  /* Legacy green aliases — map to brand palette so Bible/Sermons/Events pages render correctly */
-  --green-deep:   #0f1f3d;
-  --green-mid:    #1a3a6b;
-  --green-light:  #3b82f6;
-  --green-pale:   #eff6ff;
+  /* Aliases — keep every page working without touching JSX */
+  --green-deep:   #0a2612;
+  --green-mid:    #166534;
+  --green-light:  #16a34a;
+  --green-pale:   #dcfce7;
+}
+
+/* ══════════════════════════════════════════
+   DARK MODE — variable overrides only
+   Applied via [data-theme="dark"] on <html>
+   ══════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Surfaces — deep forest tones */
+  --white:      #111a15;
+  --milk:       #141d18;
+  --cream:      #131c17;
+  --off-white:  #0d1510;
+
+  /* Text — warm off-white, not stark */
+  --text-dark:  #d4e8da;
+  --text-mid:   #8aad98;
+  --text-light: #5a8a6a;
+  --text-muted: #3a5a48;
+
+  /* Brand greens — deeper, richer */
+  --brand-pale: #0a2016;
+  --brand-mist: #081810;
+
+  /* Shadows — deeper for dark bg */
+  --shadow-sm:  0 2px 12px rgba(0,0,0,0.4);
+  --shadow-md:  0 8px 32px rgba(0,0,0,0.55);
+  --shadow-lg:  0 24px 64px rgba(0,0,0,0.7);
+
+  /* brand-deep/mid/base stay DARK (used for hero section backgrounds).
+     Do NOT override them here — gradients must remain dark green.
+     Text readability on dark cards is handled below via [data-theme="dark"] selectors. */
+
+  /* brand-dark: used as text on white cards → must be readable on dark card bg */
+  --brand-dark:   #5aab7a;
+
+  /* green-deep/mid: used as text labels → must be readable on dark surfaces */
+  --green-deep:   #6dbf8a;
+  --green-mid:    #3ab86e;
+  --green-light:  #4dd68a;
+}
+
+/* Dark mode — common hardcoded whites in cards/inputs */
+[data-theme="dark"] body {
+  background: var(--off-white);
+  color: var(--text-dark);
+}
+
+/* Cards & white backgrounds used across pages */
+[data-theme="dark"] .card,
+[data-theme="dark"] [style*="background: white"],
+[data-theme="dark"] [style*="background:white"],
+[data-theme="dark"] [style*="background:'white'"],
+[data-theme="dark"] [style*='background: "white"'],
+[data-theme="dark"] [style*='background:"white"'] {
+  background: var(--white) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Inputs and selects with hardcoded white bg */
+[data-theme="dark"] input[style*="background"],
+[data-theme="dark"] select[style*="background: white"],
+[data-theme="dark"] select[style*="background:white"] {
+  background: #1e2922 !important;
+  color: var(--text-dark) !important;
+  border-color: #2a3d30 !important;
+}
+
+/* Hamburger bars — white spans in dark navbar */
+[data-theme="dark"] .hamburger span {
+  background: white !important;
+}
+
+/* Tag pills that use hardcoded white bg */
+[data-theme="dark"] .tag {
+  background: var(--brand-pale) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Light grey / near-white backgrounds that become invisible on dark bg */
+[data-theme="dark"] [style*="background: #f"],
+[data-theme="dark"] [style*="background:#f"],
+[data-theme="dark"] [style*="background: #e"],
+[data-theme="dark"] [style*="background:#e"] {
+  background: var(--white) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Borders that use hardcoded light colors */
+[data-theme="dark"] [style*="border-bottom: '1px solid #e"],
+[data-theme="dark"] [style*="borderBottom.*#e"] {
+  border-color: #2a3d30 !important;
+}
+
+/* Section backgrounds using --off-white or near-white */
+[data-theme="dark"] section[style*="background: var(--off-white)"],
+[data-theme="dark"] section[style*="background:var(--off-white)"],
+[data-theme="dark"] div[style*="background: var(--off-white)"] {
+  background: var(--off-white) !important;
+}
+
+/* Fix for any element using --green-pale as background text area */
+[data-theme="dark"] [style*="background: var(--green-pale)"],
+[data-theme="dark"] [style*="background:var(--green-pale)"] {
+  background: var(--green-pale) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Fix for --brand-pale backgrounds (used in cards) */
+[data-theme="dark"] [style*="background: var(--brand-pale)"],
+[data-theme="dark"] [style*="background:var(--brand-pale)"] {
+  color: var(--text-dark) !important;
+}
+
+/* ── Stats section: gradient bg using green vars ── */
+.stats-section {
+  background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+}
+[data-theme="dark"] .stats-section {
+  background: linear-gradient(135deg, #0d2918, #14412a) !important;
+}
+
+/* ── Dark mode: brand-deep text on dark surfaces must be readable ── */
+/* brand-deep (#0a2612) is used as text color on cards — flip to light on dark bg */
+[data-theme="dark"] h2[style*="color: var(--brand-deep)"],
+[data-theme="dark"] h3[style*="color: var(--brand-deep)"],
+[data-theme="dark"] h4[style*="color: var(--brand-deep)"],
+[data-theme="dark"] div[style*="color: var(--brand-deep)"],
+[data-theme="dark"] span[style*="color: var(--brand-deep)"],
+[data-theme="dark"] p[style*="color: var(--brand-deep)"],
+[data-theme="dark"] a[style*="color: var(--brand-deep)"],
+[data-theme="dark"] strong[style*="color: var(--green-deep)"] {
+  color: var(--green-deep) !important;  /* #6dbf8a — muted sage readable on dark */
+}
+
+/* brand-mid (#166534) as text → lighten */
+[data-theme="dark"] [style*="color: var(--brand-mid)"] {
+  color: var(--green-mid) !important;
+}
+
+/* ── Dark mode: explicit surface color for dark-themed card items ── */
+/* Notification, search, devotional list items on dark bg */
+[data-theme="dark"] [style*="border: '1.5px solid #f1f5f9'"],
+[data-theme="dark"] [style*="border: 1.5px solid #f1f5f9"] {
+  border-color: #2a3d30 !important;
+}
+
+/* Discussion questions box — keep it a warm dark on dark mode */  
+[data-theme="dark"] [style*="border: '1.5px solid #fcd34d'"],
+[data-theme="dark"] [style*="border: 1.5px solid #fcd34d"] {
+  background: #1a1500 !important;
+  border-color: #78350f !important;
+}
+[data-theme="dark"] [style*="border: '1.5px solid #fcd34d'"] h4,
+[data-theme="dark"] [style*="border: '1.5px solid #fcd34d'"] span,
+[data-theme="dark"] [style*="border: 1.5px solid #fcd34d"] h4,
+[data-theme="dark"] [style*="border: 1.5px solid #fcd34d"] span {
+  color: #fde68a !important;
+}
+
+/* Notification/list card borders */
+[data-theme="dark"] [style*="border: '1px solid #f1f5f9'"],
+[data-theme="dark"] [style*="border: 1px solid #f1f5f9"],
+[data-theme="dark"] [style*="borderBottom: '1px solid #f8faf8'"],
+[data-theme="dark"] [style*="border-bottom: 1px solid #f8faf8"] {
+  border-color: #1e2f22 !important;
+}
+
+/* Hamburger bars — always white regardless of theme */
+.hamburger span {
+  background: white !important;
+}
+
+/* Form inputs */
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group textarea,
+[data-theme="dark"] .form-group select {
+  background: #1e2922;
+  color: var(--text-dark);
+  border-color: #2a3d30;
+}
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group textarea:focus,
+[data-theme="dark"] .form-group select:focus {
+  border-color: var(--brand-base);
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.2);
+}
+
+/* Scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #151e19; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--brand-mid); }
+
+/* Generic white-background inline style override — catches most page cards */
+[data-theme="dark"] *[style] {
+  --white: #1a2420;
 }
 
 html {
@@ -42,7 +246,7 @@ html {
 body {
   font-family: var(--font-body);
   color: var(--text-dark);
-  background: var(--cream);
+  background: var(--off-white);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -56,8 +260,8 @@ img { display: block; max-width: 100%; }
 button { cursor: pointer; border: none; background: none; font-family: var(--font-body); }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--cream); }
-::-webkit-scrollbar-thumb { background: var(--brand-light); border-radius: 6px; }
+::-webkit-scrollbar-track { background: var(--off-white); }
+::-webkit-scrollbar-thumb { background: var(--brand-base); border-radius: 6px; }
 
 /* ── Layout ── */
 .container { max-width: 1160px; margin: 0 auto; padding: 0 5%; }
@@ -65,7 +269,7 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 
 .section-label {
   font-size: 0.72rem; font-weight: 700; letter-spacing: 0.28em;
-  text-transform: uppercase; color: var(--brand-glow); display: block; margin-bottom: 8px;
+  text-transform: uppercase; color: var(--brand-base); display: block; margin-bottom: 8px;
 }
 .section-title {
   font-size: clamp(1.8rem, 4vw, 2.8rem);
@@ -73,7 +277,7 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 }
 .section-divider {
   width: 52px; height: 4px;
-  background: linear-gradient(90deg, var(--brand-light), var(--gold));
+  background: linear-gradient(90deg, var(--brand-base), var(--gold));
   border-radius: 4px; margin-bottom: 28px;
 }
 .section-sub {
@@ -90,10 +294,10 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 .btn:hover { transform: translateY(-2px); }
 
 .btn-blue {
-  background: var(--brand-light); color: white;
-  box-shadow: 0 4px 20px rgba(37,99,235,0.35);
+  background: var(--brand-base); color: white;
+  box-shadow: 0 4px 20px rgba(22,163,74,0.35);
 }
-.btn-blue:hover { background: var(--brand-mid); box-shadow: 0 8px 28px rgba(26,58,107,0.4); }
+.btn-blue:hover { background: var(--brand-mid); box-shadow: 0 8px 28px rgba(22,163,74,0.4); }
 
 .btn-gold {
   background: var(--gold); color: var(--brand-deep);
@@ -104,14 +308,14 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 .btn-outline-white { border: 2px solid white; color: white; }
 .btn-outline-white:hover { background: white; color: var(--brand-deep); }
 
-.btn-outline-blue { border: 2px solid var(--brand-light); color: var(--brand-light); }
-.btn-outline-blue:hover { background: var(--brand-light); color: white; }
+.btn-outline-blue { border: 2px solid var(--brand-base); color: var(--brand-base); }
+.btn-outline-blue:hover { background: var(--brand-base); color: white; }
 
 /* keep green aliases for admin panel */
-.btn-green { background: var(--brand-light); color: white; box-shadow: 0 4px 20px rgba(37,99,235,0.35); }
+.btn-green { background: var(--brand-base); color: white; box-shadow: 0 4px 20px rgba(22,163,74,0.35); }
 .btn-green:hover { background: var(--brand-mid); }
-.btn-outline-green { border: 2px solid var(--brand-light); color: var(--brand-light); }
-.btn-outline-green:hover { background: var(--brand-light); color: white; }
+.btn-outline-green { border: 2px solid var(--brand-base); color: var(--brand-base); }
+.btn-outline-green:hover { background: var(--brand-base); color: white; }
 
 /* ── Card ── */
 .card {
@@ -125,7 +329,7 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 .tag {
   font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
   padding: 4px 12px; border-radius: 20px;
-  background: var(--brand-pale); color: var(--brand-light); display: inline-block;
+  background: var(--brand-pale); color: var(--brand-mid); display: inline-block;
 }
 
 /* ── Forms ── */
@@ -147,8 +351,8 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: var(--brand-light);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  border-color: var(--brand-base);
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
 }
 .form-group textarea { resize: vertical; min-height: 100px; }
 
@@ -202,21 +406,4 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
   .hero-ctas { flex-direction: column !important; align-items: center !important; }
   .hero-ctas a { width: 100%; max-width: 280px; justify-content: center !important; }
 }
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
-/* Sabbath School responsive layout */
-@media (max-width: 768px) {
-  .ss-desktop-sidebar { display: none !important; }
-  .ss-mobile-bar { display: flex !important; }
-  .ss-content-wrap { display: block !important; }
-  .ss-outer { padding: 0 0 60px 0 !important; max-width: 100% !important; }
-  .ss-card { border-radius: 0 !important; border-left: none !important; border-right: none !important; box-shadow: none !important; }
-  .ss-hero { padding-left: 16px !important; padding-right: 16px !important; }
-  .ss-mobile-bar { left: 0 !important; right: 0 !important; width: 100% !important; box-sizing: border-box !important; }
-}
-@media (min-width: 769px) {
-  .ss-mobile-bar { display: none !important; }
-  .ss-content-wrap { display: grid !important; grid-template-columns: 260px 1fr; gap: 28px; }
-  .ss-desktop-sidebar { display: block !important; }
-}
-.ss-lesson-item:hover { background: var(--brand-pale) !important; }

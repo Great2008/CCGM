@@ -2,12 +2,14 @@ import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useHomepageContent, useSermonsContent, useEventsContent } from '../hooks/useContent'
 import supabase from '../lib/supabase'
+import DailyVerseBanner from '../components/DailyVerseBanner'
 
 export default function Home() {
   const { data: hp } = useHomepageContent()
   const { data: liveSermons } = useSermonsContent()
   const { data: liveEvents }  = useEventsContent()
-  const [liveData, setLiveData] = useState(null)
+  const [liveData, setLiveData]     = useState(null)
+  const [activeProg, setActiveProg] = useState(null) // active programme or null
 
   useEffect(() => {
     supabase.from('site_settings').select('value').eq('key','live').single()
@@ -15,6 +17,23 @@ export default function Home() {
     const sub = supabase.channel('home-live')
       .on('postgres_changes', { event:'UPDATE', schema:'public', table:'site_settings', filter:'key=eq.live' },
         payload => setLiveData(payload.new.value))
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [])
+
+  // Fetch active programme for homepage banner
+  useEffect(() => {
+    supabase.from('programmes').select('id,title,theme,start_date,end_date,venue')
+      .eq('is_active', true).limit(1).single()
+      .then(({ data }) => setActiveProg(data || null))
+    const sub = supabase.channel('home-prog')
+      .on('postgres_changes', { event:'*', schema:'public', table:'programmes' },
+        async () => {
+          const { data } = await supabase.from('programmes')
+            .select('id,title,theme,start_date,end_date,venue')
+            .eq('is_active', true).limit(1).single()
+          setActiveProg(data || null)
+        })
       .subscribe()
     return () => supabase.removeChannel(sub)
   }, [])
@@ -36,7 +55,7 @@ export default function Home() {
       {/* HERO */}
       <section style={{
         minHeight:'100vh',
-        background:`linear-gradient(160deg,rgba(15,31,61,0.92) 0%,rgba(26,58,107,0.85) 55%,rgba(37,99,235,0.4) 100%),url('https://images.unsplash.com/photo-1438232992991-995b671e4b8b?w=1600&q=80') center/cover no-repeat`,
+        background:`linear-gradient(160deg,rgba(10,38,18,0.92) 0%,rgba(22,100,52,0.85) 55%,rgba(22,163,74,0.4) 100%),url('https://images.unsplash.com/photo-1438232992991-995b671e4b8b?w=1600&q=80') center/cover no-repeat`,
         display:'flex',alignItems:'center',justifyContent:'center',
         textAlign:'center',padding:'clamp(100px,15vw,140px) 20px 80px',
         position:'relative',overflow:'hidden',
@@ -55,10 +74,48 @@ export default function Home() {
             <Link to="/sermons" className="btn btn-gold">🎙 Latest Sermon</Link>
             <Link to={hp.hero.ctaLink||'/events'} className="btn btn-outline-white">{hp.hero.ctaText}</Link>
           </div>
+
+          {/* Programme Banner — shown only when an active programme exists */}
+          {activeProg && (
+            <Link to="/programme" style={{ textDecoration:'none', display:'block', marginTop:28 }}>
+              <div
+                style={{
+                  background:'linear-gradient(135deg,rgba(180,83,9,0.88),rgba(217,119,6,0.82))',
+                  backdropFilter:'blur(12px)',
+                  border:'1px solid rgba(251,191,36,0.45)',
+                  borderRadius:16, padding:'16px 22px',
+                  display:'flex', alignItems:'center', gap:14, flexWrap:'wrap',
+                  boxShadow:'0 8px 32px rgba(180,83,9,0.35)',
+                  transition:'transform 0.2s, box-shadow 0.2s',
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 12px 40px rgba(180,83,9,0.45)'}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 8px 32px rgba(180,83,9,0.35)'}}
+              >
+                <div style={{fontSize:'1.8rem',flexShrink:0,animation:'softPulse 2.5s ease-in-out infinite'}}>📅</div>
+                <div style={{flex:1,minWidth:160,textAlign:'left'}}>
+                  <div style={{fontSize:'0.65rem',fontWeight:800,color:'rgba(255,255,255,0.75)',textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:3}}>
+                    ⭐ Special Event — Now On
+                  </div>
+                  <div style={{fontFamily:'var(--font-display)',fontWeight:900,color:'white',fontSize:'clamp(0.92rem,2vw,1.08rem)',lineHeight:1.2,marginBottom:activeProg.theme?4:0}}>
+                    {activeProg.title}
+                  </div>
+                  {activeProg.theme && (
+                    <div style={{color:'rgba(255,255,255,0.8)',fontStyle:'italic',fontSize:'0.8rem'}}>"{activeProg.theme}"</div>
+                  )}
+                  {activeProg.venue && (
+                    <div style={{color:'rgba(255,255,255,0.65)',fontSize:'0.75rem',marginTop:3}}>📍 {activeProg.venue}</div>
+                  )}
+                </div>
+                <div style={{background:'rgba(255,255,255,0.15)',borderRadius:30,padding:'8px 16px',color:'white',fontWeight:800,fontSize:'0.8rem',whiteSpace:'nowrap',flexShrink:0}}>
+                  View Programme →
+                </div>
+              </div>
+            </Link>
+          )}
           <div style={{marginTop:48,display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',alignItems:'center'}}>
             {isLive ? (
               <Link to="/live" style={{display:'inline-flex',alignItems:'center',gap:10,background:'#dc2626',border:'none',borderRadius:40,padding:'10px 24px',textDecoration:'none',animation:'pulse 1.5s infinite'}}>
-                <span style={{width:8,height:8,borderRadius:'50%',background:'white',display:'inline-block'}} />
+                <span style={{width:8,height:8,borderRadius:'50%',background: 'var(--white, white)',display:'inline-block'}} />
                 <span style={{color:'white',fontSize:'0.88rem',fontWeight:900}}>🔴 We Are Live — Watch Now</span>
               </Link>
             ) : (
@@ -88,7 +145,7 @@ export default function Home() {
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:12}}>
             {hp.serviceTimes.map(({icon,day,name,time})=>(
               <div key={day} style={{
-                background:'white',borderRadius:14,padding:'18px 12px',textAlign:'center',
+                background:'var(--white, white)',borderRadius:14,padding:'18px 12px',textAlign:'center',
                 borderTop:`4px solid ${day==='Saturday'?'var(--gold)':'var(--green-mid)'}`,
                 boxShadow:'var(--shadow-sm)',transition:'transform 0.2s',
               }}
@@ -106,7 +163,7 @@ export default function Home() {
 
       {/* LATEST SERMON */}
       {latestSermon && (
-        <section style={{background:'var(--green-deep)',padding:'clamp(60px,8vw,90px) 5%'}}>
+        <section style={{background:'linear-gradient(135deg,var(--brand-deep),var(--brand-mid))',padding:'clamp(60px,8vw,90px) 5%'}}>
           <div className="container">
             <div className="sermon-grid">
               <div>
@@ -132,7 +189,7 @@ export default function Home() {
                 {latestSermon.thumbnail ? (
                   <>
                     <img src={latestSermon.thumbnail} alt={latestSermon.title} style={{width:'100%',borderRadius:16,boxShadow:'0 24px 60px rgba(0,0,0,0.4)'}} />
-                    <div style={{position:'absolute',inset:0,borderRadius:16,background:'rgba(15,31,61,0.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <div style={{position:'absolute',inset:0,borderRadius:16,background:'rgba(10,38,18,0.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
                       <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(255,255,255,0.95)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.6rem',boxShadow:'0 8px 30px rgba(0,0,0,0.3)',cursor:'pointer',transition:'transform 0.2s'}}
                       onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
                       onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>▶</div>
@@ -192,7 +249,7 @@ export default function Home() {
         </section>
       )}
 
-      <section style={{background:'linear-gradient(135deg,var(--green-deep),var(--green-mid))',padding:'clamp(50px,7vw,80px) 5%'}}>
+      <section className="stats-section" style={{padding:'clamp(50px,7vw,80px) 5%'}}>
         <div className="container">
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:24,textAlign:'center'}}>
             {hp.stats.map(s=>(
@@ -223,6 +280,7 @@ export default function Home() {
       <style>{`
         .sermon-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+        @keyframes softPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(1.12)}}
         @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
         @media(max-width:768px){
           .sermon-grid{grid-template-columns:1fr!important;gap:32px!important;}
@@ -230,6 +288,9 @@ export default function Home() {
           .hero-ctas a{width:100%;max-width:280px;justify-content:center;}
         }
       `}</style>
+
+      {/* Daily Verse floating banner */}
+      <DailyVerseBanner />
     </>
   )
 }
