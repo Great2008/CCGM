@@ -80,24 +80,58 @@ jobs:
         run: npx cap sync android
 
       # Icons copied AFTER sync so they are not overwritten
-      - name: Copy app icons
+      - name: Copy app icons and set up adaptive icons
         run: |
           MIPMAP=android/app/src/main/res
+          VALUES=android/app/src/main/res/values
+
+          # ── 1. Copy legacy launcher icons (all densities) ──────────────
           cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher.png
           cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher_round.png
-          cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher_foreground.png
           cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher.png
           cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher_round.png
-          cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher_foreground.png
           cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher.png
           cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher_round.png
-          cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher_foreground.png
           cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher.png
           cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher_round.png
-          cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher_foreground.png
           cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher.png
           cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher_round.png
+
+          # ── 2. Copy foreground PNGs (logo only, no background) ─────────
+          cp public/icon-72.png  $MIPMAP/mipmap-mdpi/ic_launcher_foreground.png
+          cp public/icon-96.png  $MIPMAP/mipmap-hdpi/ic_launcher_foreground.png
+          cp public/icon-96.png  $MIPMAP/mipmap-xhdpi/ic_launcher_foreground.png
+          cp public/icon-144.png $MIPMAP/mipmap-xxhdpi/ic_launcher_foreground.png
           cp public/icon-192.png $MIPMAP/mipmap-xxxhdpi/ic_launcher_foreground.png
+
+          # ── 3. Write adaptive icon background color resource ───────────
+          mkdir -p $VALUES
+          cat > $VALUES/ic_launcher_background.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#FFFFFF</color>
+          </resources>
+          EOF
+
+          # ── 4. Write adaptive icon XML (mipmap-anydpi-v26) ────────────
+          mkdir -p $MIPMAP/mipmap-anydpi-v26
+          cat > $MIPMAP/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background"/>
+              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+          </adaptive-icon>
+          EOF
+
+          cat > $MIPMAP/mipmap-anydpi-v26/ic_launcher_round.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background"/>
+              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+          </adaptive-icon>
+          EOF
+
+          echo "✅ Adaptive icons configured with white background"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
