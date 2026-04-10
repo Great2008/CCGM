@@ -342,7 +342,7 @@ export default function Navbar() {
           ) : (
             <Link to="/timeline" className="btn btn-gold" style={{width:'100%',justifyContent:'center',padding:'12px'}}>🌐 Join Community</Link>
           )}
-          <Link to="/admin" style={{display:'block',textAlign:'center',marginTop:12,color:'rgba(255,255,255,0.25)',fontSize:'0.7rem'}}>Admin Panel</Link>
+          
         </div>
       </div>
 
