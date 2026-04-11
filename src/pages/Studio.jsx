@@ -29,9 +29,10 @@ const fmtViews = (n) => {
 
 // ─── API fetch helpers ───────────────────────────────────────────────────────
 
-const fetchVideos   = () => fetch('/api/youtube/videos').then(r => r.json())
-const fetchPlaylists= () => fetch('/api/youtube/playlists').then(r => r.json())
-const fetchLive     = () => fetch('/api/youtube/live').then(r => r.json())
+const API_BASE    = 'https://ccgm-pwa.vercel.app'
+const fetchVideos   = () => fetch(`${API_BASE}/api/youtube/videos`).then(r => r.json())
+const fetchPlaylists= () => fetch(`${API_BASE}/api/youtube/playlists`).then(r => r.json())
+const fetchLive     = () => fetch(`${API_BASE}/api/youtube/live`).then(r => r.json())
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
