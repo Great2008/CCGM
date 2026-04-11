@@ -1,149 +1,123 @@
 import { useState } from 'react'
 
 /**
- * ShareButton — uses Web Share API on mobile, falls back to clipboard copy on desktop.
- *
- * Props:
- *   title   — content title
- *   text    — short description / excerpt
- *   url     — URL to share (defaults to current page)
- *   label   — button label (default: 'Share')
- *   variant — 'icon-only' | 'full' (default: 'full')
- *   style   — extra inline styles for the button
+ * shareNative — tries @capacitor/share first (guaranteed native sheet on Android/iOS),
+ * falls back to Web Share API, then clipboard copy.
  */
-export default function ShareButton({ title, text, url, label = 'Share', variant = 'full', style: extraStyle = {} }) {
-  const [copied, setCopied] = useState(false)
-  const [sharing, setSharing] = useState(false)
+async function shareNative(shareData) {
+  // 1. Capacitor Share (native Android/iOS share sheet)
+  try {
+    const { Share } = await import('@capacitor/share')
+    const { value } = await Share.canShare()
+    if (value) {
+      await Share.share({
+        title:       shareData.title,
+        text:        shareData.text,
+        url:         shareData.url,
+        dialogTitle: shareData.title,
+      })
+      return 'shared'
+    }
+  } catch {}
 
-  const shareUrl = url || window.location.href
+  // 2. Web Share API (PWA / browser)
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData)
+      return 'shared'
+    } catch (err) {
+      if (err.name === 'AbortError') return 'cancelled'
+    }
+  }
+
+  // 3. Clipboard fallback (desktop)
+  try {
+    await navigator.clipboard.writeText(shareData.url || shareData.text || '')
+    return 'copied'
+  } catch {}
+
+  return 'failed'
+}
+
+export default function ShareButton({ title, text, url, label = 'Share', variant = 'full', style: extraStyle = {} }) {
+  const [state, setState] = useState('idle')
 
   const shareData = {
     title: title || 'CCG World',
-    text: text
-      ? `${text}\n\nRead more on CCG World`
-      : 'Check this out on CCG World',
-    url: shareUrl,
+    text:  text ? `${text}\n\nRead more on CCG World` : 'Check this out on CCG World',
+    url:   url || window.location.href,
   }
 
   const handleShare = async (e) => {
     e.stopPropagation()
-    if (sharing) return
-    setSharing(true)
-
-    try {
-      // Use native share sheet if available (mobile PWA / Android / iOS)
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData)
-      } else if (navigator.share) {
-        await navigator.share(shareData)
-      } else {
-        // Desktop fallback — copy link to clipboard
-        await navigator.clipboard.writeText(shareUrl)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2500)
-      }
-    } catch (err) {
-      // User cancelled share — not an error
-      if (err.name !== 'AbortError') {
-        // Last resort fallback
-        try {
-          await navigator.clipboard.writeText(shareUrl)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2500)
-        } catch {}
-      }
-    } finally {
-      setSharing(false)
+    if (state === 'sharing') return
+    setState('sharing')
+    const result = await shareNative(shareData)
+    if (result === 'copied') {
+      setState('copied')
+      setTimeout(() => setState('idle'), 2500)
+    } else {
+      setState('idle')
     }
   }
 
-  const baseStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: variant === 'icon-only' ? '8px' : '8px 16px',
-    borderRadius: 30,
-    border: '1.5px solid',
-    borderColor: copied ? '#22c55e' : 'rgba(255,255,255,0.3)',
-    background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.1)',
-    color: copied ? '#22c55e' : 'white',
-    fontSize: '0.8rem',
-    fontWeight: 700,
-    cursor: 'pointer',
-    fontFamily: 'var(--font-body)',
-    transition: 'all 0.2s',
-    flexShrink: 0,
-    ...extraStyle,
-  }
+  const copied = state === 'copied'
 
   return (
-    <button onClick={handleShare} style={baseStyle} title="Share">
+    <button onClick={handleShare} title="Share" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: variant === 'icon-only' ? '8px' : '8px 16px',
+      borderRadius: 30, border: '1.5px solid',
+      borderColor: copied ? '#22c55e' : 'rgba(255,255,255,0.3)',
+      background:   copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.1)',
+      color:        copied ? '#22c55e' : 'white',
+      fontSize: '0.8rem', fontWeight: 700,
+      cursor: 'pointer', fontFamily: 'var(--font-body)',
+      transition: 'all 0.2s', flexShrink: 0,
+      ...extraStyle,
+    }}>
       {copied ? '✅' : '↗'}
-      {variant !== 'icon-only' && (
-        <span>{copied ? 'Copied!' : label}</span>
-      )}
+      {variant !== 'icon-only' && <span>{copied ? 'Copied!' : label}</span>}
     </button>
   )
 }
 
-/**
- * ShareButtonLight — for use on white/light backgrounds (cards, detail panes)
- */
 export function ShareButtonLight({ title, text, url, label = 'Share', style: extraStyle = {} }) {
-  const [copied, setCopied] = useState(false)
-  const [sharing, setSharing] = useState(false)
+  const [state, setState] = useState('idle')
 
-  const shareUrl = url || window.location.href
   const shareData = {
     title: title || 'CCG World',
-    text: text ? `${text}\n\nRead more on CCG World` : 'Check this out on CCG World',
-    url: shareUrl,
+    text:  text ? `${text}\n\nRead more on CCG World` : 'Check this out on CCG World',
+    url:   url || window.location.href,
   }
 
   const handleShare = async (e) => {
     e.stopPropagation()
-    if (sharing) return
-    setSharing(true)
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData)
-      } else {
-        await navigator.clipboard.writeText(shareUrl)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2500)
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        try {
-          await navigator.clipboard.writeText(shareUrl)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2500)
-        } catch {}
-      }
-    } finally {
-      setSharing(false)
+    if (state === 'sharing') return
+    setState('sharing')
+    const result = await shareNative(shareData)
+    if (result === 'copied') {
+      setState('copied')
+      setTimeout(() => setState('idle'), 2500)
+    } else {
+      setState('idle')
     }
   }
 
+  const copied = state === 'copied'
+
   return (
-    <button onClick={handleShare} style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 6,
-      padding: '7px 16px',
-      borderRadius: 30,
-      border: '1.5px solid',
+    <button onClick={handleShare} title="Share" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '7px 16px', borderRadius: 30, border: '1.5px solid',
       borderColor: copied ? '#22c55e' : '#e2e8f0',
-      background: copied ? '#f0fdf4' : 'white',
-      color: copied ? '#16a34a' : 'var(--text-mid)',
-      fontSize: '0.8rem',
-      fontWeight: 700,
-      cursor: 'pointer',
-      fontFamily: 'var(--font-body)',
-      transition: 'all 0.2s',
-      flexShrink: 0,
+      background:   copied ? '#f0fdf4' : 'white',
+      color:        copied ? '#16a34a' : 'var(--text-mid)',
+      fontSize: '0.8rem', fontWeight: 700,
+      cursor: 'pointer', fontFamily: 'var(--font-body)',
+      transition: 'all 0.2s', flexShrink: 0,
       ...extraStyle,
-    }} title="Share">
+    }}>
       {copied ? '✅' : '↗'}
       <span>{copied ? 'Copied!' : label}</span>
     </button>

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { useNativeSetup } from './hooks/useNativeSetup'
 import Navbar     from './components/Navbar'
 import Footer     from './components/Footer'
 import Home       from './pages/Home'
@@ -31,6 +33,23 @@ import SuspensionNotice from './components/SuspensionNotice'
 
 function AppInner() {
   const { user } = useAuth()
+
+  // ── Native setup: push notification routing, badge count ──
+  useNativeSetup()
+
+  // ── Hide splash screen once React has mounted ─────────────
+  useEffect(() => {
+    const hideSplash = async () => {
+      try {
+        const { SplashScreen } = await import('@capacitor/splash-screen')
+        await SplashScreen.hide({ fadeOutDuration: 500 })
+      } catch {
+        // Not native — silently ignore
+      }
+    }
+    hideSplash()
+  }, [])
+
   return (
     <>
       <Navbar />

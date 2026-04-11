@@ -757,9 +757,39 @@ export default function Certificate() {
   }
 
   // ── Download helper ────────────────────────────────────────────
-  const download = (ref, filename) => {
-    const a = document.createElement('a')
-    a.download = filename; a.href = ref.current.toDataURL('image/png'); a.click()
+  const download = async (ref, filename) => {
+    const canvas = ref.current
+    if (!canvas) return
+
+    try {
+      // Try Capacitor Filesystem (native Android/iOS)
+      const { Filesystem, Directory } = await import('@capacitor/filesystem')
+      const { Share } = await import('@capacitor/share')
+
+      // Convert canvas to base64 PNG (strip the data:image/png;base64, prefix)
+      const base64Data = canvas.toDataURL('image/png').split(',')[1]
+
+      // Write to device Documents folder
+      const result = await Filesystem.writeFile({
+        path: filename,
+        data: base64Data,
+        directory: Directory.Cache,
+      })
+
+      // Open native share sheet so user can save to Gallery / share
+      await Share.share({
+        title: 'CCG World Certificate',
+        text: 'My CCG World Certificate',
+        url: result.uri,
+        dialogTitle: 'Save or Share Certificate',
+      })
+    } catch {
+      // Fallback for web / PWA — anchor click download
+      const a = document.createElement('a')
+      a.download = filename
+      a.href = canvas.toDataURL('image/png')
+      a.click()
+    }
   }
 
   // ── Tabs ───────────────────────────────────────────────────────
