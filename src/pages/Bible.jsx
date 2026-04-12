@@ -21,10 +21,27 @@ const POPULAR = [
 // After reading a chapter online once, it is permanently available offline
 const BIBLE_CDN = 'https://cdn.jsdelivr.net/gh/thiagobodruk/bible@master/json/en_kjv.json'
 const CACHE_META = 'ccogm_kjv_loaded'
+const CACHE_VER  = 'ccogm_kjv_ver'
+const CURRENT_VER = '2'  // bump this to force a re-cache when mapping bugs are fixed
 const CHAPTER_KEY = (bookId, ch) => `kjv_${bookId}_${ch}`
 
 // In-memory store for the session
 let KJV_MEMORY = null
+
+// ── Migration: if cache version is outdated, wipe and re-download ──────────
+;(function migrateBibleCache() {
+  try {
+    const storedVer = localStorage.getItem(CACHE_VER)
+    if (storedVer !== CURRENT_VER) {
+      // Clear old broken cache
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('kjv_'))
+      keys.forEach(k => localStorage.removeItem(k))
+      localStorage.removeItem(CACHE_META)
+      localStorage.setItem(CACHE_VER, CURRENT_VER)
+      KJV_MEMORY = null
+    }
+  } catch {}
+})()
 
 function useStorage(key, def) {
   const [val, setVal] = useState(() => {
@@ -74,7 +91,7 @@ async function loadFullBible(onProgress) {
       'act':'ACT','rm':'ROM','1co':'1CO','2co':'2CO','gl':'GAL','ep':'EPH',
       'ph':'PHP','cl':'COL','1ts':'1TH','2ts':'2TH','1tm':'1TI','2tm':'2TI',
       'tt':'TIT','phm':'PHM','hb':'HEB','jm':'JAS','1pe':'1PE','2pe':'2PE',
-      '1jo':'1JN','2jo':'2JN','3jo':'3JN','jd':'JUD','rv':'REV'
+      '1jo':'1JN','2jo':'2JN','3jo':'3JN','jd':'JUD','re':'REV','rv':'REV'
     }
 
     onProgress('Caching all books offline...')

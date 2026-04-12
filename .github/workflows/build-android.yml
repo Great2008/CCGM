@@ -90,39 +90,40 @@ jobs:
           from PIL import Image
           import os
 
-          MIPMAP = "android/app/src/main/res"
-          VALUES = "android/app/src/main/res/values"
+          LOGO_SRC = "public/logo.png"
+          MIPMAP   = "android/app/src/main/res"
+          VALUES   = "android/app/src/main/res/values"
 
-          # density -> (foreground_canvas_px, launcher_size_px, source_icon)
-          # Foreground canvas = 1.5x launcher size (108dp equivalent per density)
-          # Logo rendered at 66% of canvas = natural padding / safe zone
+          # density -> (foreground_canvas_px, launcher_size_px)
+          # All generated from logo.png directly
           densities = {
-              "mipmap-mdpi":    (108, 48,  "public/icon-72.png"),
-              "mipmap-hdpi":    (162, 72,  "public/icon-96.png"),
-              "mipmap-xhdpi":   (216, 96,  "public/icon-96.png"),
-              "mipmap-xxhdpi":  (324, 144, "public/icon-144.png"),
-              "mipmap-xxxhdpi": (432, 192, "public/icon-192.png"),
+              "mipmap-mdpi":    (108, 48),
+              "mipmap-hdpi":    (162, 72),
+              "mipmap-xhdpi":   (216, 96),
+              "mipmap-xxhdpi":  (324, 144),
+              "mipmap-xxxhdpi": (432, 192),
           }
 
-          def make_foreground(src_path, canvas_px):
-              logo = Image.open(src_path).convert("RGBA")
+          logo = Image.open(LOGO_SRC).convert("RGBA")
+
+          def make_foreground(canvas_px):
               logo_size = int(canvas_px * 0.50)
-              logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
+              resized = logo.resize((logo_size, logo_size), Image.LANCZOS)
               canvas = Image.new("RGBA", (canvas_px, canvas_px), (0, 0, 0, 0))
               offset = (canvas_px - logo_size) // 2
-              canvas.paste(logo, (offset, offset), logo)
+              canvas.paste(resized, (offset, offset), resized)
               return canvas
 
-          for density, (canvas_px, launcher_px, src) in densities.items():
+          for density, (canvas_px, launcher_px) in densities.items():
               out_dir = os.path.join(MIPMAP, density)
               os.makedirs(out_dir, exist_ok=True)
 
-              # Padded foreground (transparent canvas, logo at 66%)
-              fg = make_foreground(src, canvas_px)
+              # Adaptive foreground — logo at 50% of canvas, transparent padding
+              fg = make_foreground(canvas_px)
               fg.save(os.path.join(out_dir, "ic_launcher_foreground.png"))
 
-              # Standard launcher icons (exact size, no padding)
-              icon = Image.open(src).convert("RGBA").resize((launcher_px, launcher_px), Image.LANCZOS)
+              # Legacy launcher icon — logo resized to exact size
+              icon = logo.resize((launcher_px, launcher_px), Image.LANCZOS)
               icon.save(os.path.join(out_dir, "ic_launcher.png"))
               icon.save(os.path.join(out_dir, "ic_launcher_round.png"))
               print(f"✅ {density}: launcher={launcher_px}px, foreground={canvas_px}px canvas")
