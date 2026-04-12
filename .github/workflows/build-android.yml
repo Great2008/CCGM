@@ -95,7 +95,7 @@ jobs:
 
           # density -> (foreground_canvas_px, launcher_size_px, source_icon)
           # Foreground canvas = 1.5x launcher size (108dp equivalent per density)
-          # Logo rendered at 50% of canvas = natural padding / safe zone
+          # Logo rendered at 66% of canvas = natural padding / safe zone
           densities = {
               "mipmap-mdpi":    (108, 48,  "public/icon-72.png"),
               "mipmap-hdpi":    (162, 72,  "public/icon-96.png"),
@@ -106,7 +106,7 @@ jobs:
 
           def make_foreground(src_path, canvas_px):
               logo = Image.open(src_path).convert("RGBA")
-              logo_size = int(canvas_px * 0.50)
+              logo_size = int(canvas_px * 0.66)
               logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
               canvas = Image.new("RGBA", (canvas_px, canvas_px), (0, 0, 0, 0))
               offset = (canvas_px - logo_size) // 2
@@ -146,10 +146,9 @@ jobs:
       - name: Generate Android splash drawable from logo
         run: |
           python3 - << 'PYEOF'
-          from PIL import Image
-          import os
+          from PIL import Image, ImageDraw, ImageFont
+          import math, os
 
-          # Android splash drawable sizes per density
           densities = {
               "drawable-mdpi":    (480,  800),
               "drawable-hdpi":    (720,  1280),
@@ -158,28 +157,79 @@ jobs:
               "drawable-xxxhdpi": (1440, 2560),
           }
 
-          LOGO_SRC   = "public/logo.png"
-          BG_COLOR   = (15, 31, 61, 255)  # #0f1f3d — brand dark blue
-          LOGO_SCALE = 0.35               # logo width = 35% of screen width
+          LOGO_SRC    = "public/logo.png"
+          GREEN_CORE  = (0,  178,  80)
+          GREEN_MID   = (72, 200, 120)
+          WHITE_TINT  = (220, 245, 230)
+          DARK_GREEN  = (5,  70,  25)
+          MID_GREEN   = (15, 110, 45)
 
-          logo = Image.open(LOGO_SRC).convert("RGBA")
+          logo_src = Image.open(LOGO_SRC).convert("RGBA")
 
-          for density, (w, h) in densities.items():
+          # Try to load fonts, fallback gracefully
+          try:
+              font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", 0)
+              font_sub   = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 0)
+              has_fonts  = True
+          except:
+              has_fonts  = False
+
+          for density, (W, H) in densities.items():
               out_dir = f"android/app/src/main/res/{density}"
               os.makedirs(out_dir, exist_ok=True)
 
-              canvas = Image.new("RGBA", (w, h), BG_COLOR)
+              # ── Radial gradient background ──────────────────────────
+              canvas = Image.new("RGB", (W, H))
+              pixels = canvas.load()
+              cx, cy = W // 2, int(H * 0.22)
+              max_dist = math.sqrt(W**2 + H**2) * 0.72
 
-              logo_w = int(w * LOGO_SCALE)
-              logo_h = int(logo.height * (logo_w / logo.width))
-              resized = logo.resize((logo_w, logo_h), Image.LANCZOS)
+              for y in range(H):
+                  for x in range(W):
+                      dist = math.sqrt((x - cx)**2 + (y - cy)**2)
+                      t    = min(dist / max_dist, 1.0)
+                      t2   = t * t * (3 - 2 * t)
+                      if t2 < 0.5:
+                          s = t2 / 0.5
+                          r = int(GREEN_CORE[0] + (GREEN_MID[0]-GREEN_CORE[0]) * s)
+                          g = int(GREEN_CORE[1] + (GREEN_MID[1]-GREEN_CORE[1]) * s)
+                          b = int(GREEN_CORE[2] + (GREEN_MID[2]-GREEN_CORE[2]) * s)
+                      else:
+                          s = (t2 - 0.5) / 0.5
+                          r = int(GREEN_MID[0] + (WHITE_TINT[0]-GREEN_MID[0]) * s)
+                          g = int(GREEN_MID[1] + (WHITE_TINT[1]-GREEN_MID[1]) * s)
+                          b = int(GREEN_MID[2] + (WHITE_TINT[2]-GREEN_MID[2]) * s)
+                      pixels[x, y] = (r, g, b)
 
-              x = (w - logo_w) // 2
-              y = (h - logo_h) // 2
-              canvas.paste(resized, (x, y), resized)
+              # ── Logo ────────────────────────────────────────────────
+              logo_w = int(W * 0.50)
+              logo_h = int(logo_src.height * (logo_w / logo_src.width))
+              resized = logo_src.resize((logo_w, logo_h), Image.LANCZOS)
+              lx = (W - logo_w) // 2
+              ly = int(H * 0.17)
+              canvas.paste(resized, (lx, ly), resized)
 
-              canvas.convert("RGB").save(f"{out_dir}/splash.png")
-              print(f"✅ {density}/splash.png ({w}x{h})")
+              # ── Text ────────────────────────────────────────────────
+              draw = ImageDraw.Draw(canvas)
+              text_y = ly + logo_h + int(H * 0.04)
+
+              if has_fonts:
+                  ft = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", int(W * 0.128))
+                  fs = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",      int(W * 0.050))
+              else:
+                  ft = fs = ImageFont.load_default()
+
+              t1 = "CCG World"
+              bb1 = draw.textbbox((0, 0), t1, font=ft)
+              draw.text(((W - (bb1[2]-bb1[0])) // 2, text_y), t1, font=ft, fill=DARK_GREEN)
+              text_y += (bb1[3] - bb1[1]) + int(H * 0.014)
+
+              t2 = "Christian Church Of God Mission"
+              bb2 = draw.textbbox((0, 0), t2, font=fs)
+              draw.text(((W - (bb2[2]-bb2[0])) // 2, text_y), t2, font=fs, fill=MID_GREEN)
+
+              canvas.save(f"{out_dir}/splash.png")
+              print(f"✅ {density}/splash.png ({W}x{H})")
           PYEOF
 
       - name: Setup Java 17

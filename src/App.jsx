@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useNativeSetup } from './hooks/useNativeSetup'
+import AppSplash from './components/AppSplash'
 import Navbar     from './components/Navbar'
 import Footer     from './components/Footer'
 import Home       from './pages/Home'
@@ -33,11 +34,12 @@ import SuspensionNotice from './components/SuspensionNotice'
 
 function AppInner() {
   const { user } = useAuth()
+  const [splashDone, setSplashDone] = useState(false)
 
   // ── Native setup: push notification routing, badge count ──
   useNativeSetup()
 
-  // ── Hide native splash immediately — video in index.html takes over ──
+  // ── Hide native splash immediately — React splash takes over ──
   useEffect(() => {
     const hideSplash = async () => {
       try {
@@ -52,6 +54,7 @@ function AppInner() {
 
   return (
     <>
+      {!splashDone && <AppSplash onDone={() => setSplashDone(true)} />}
       <Navbar />
       <main style={{ overflowX: 'hidden' }}>
         <Routes>
