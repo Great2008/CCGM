@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useNativeSetup } from './hooks/useNativeSetup'
 import AppSplash from './components/AppSplash'
+import UpdatePrompt from './components/UpdatePrompt'
 import Navbar     from './components/Navbar'
 import Footer     from './components/Footer'
 import Home       from './pages/Home'
@@ -86,6 +87,7 @@ function AppInner() {
       <Footer />
       <PushPrompt user={user} />
       <SuspensionNotice />
+      {splashDone && <UpdatePrompt />}
     </>
   )
 }
