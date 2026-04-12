@@ -20,12 +20,12 @@
       "launchAutoHide": false,
       "backgroundColor": "#0f1f3d",
       "androidSplashResourceName": "splash",
-      "androidScaleType": "CENTER_CROP",
+      "androidScaleType": "CENTER_INSIDE",
       "showSpinner": false,
       "splashFullScreen": true,
       "splashImmersive": true,
-      "fadeInDuration": 200,
-      "fadeOutDuration": 500
+      "fadeInDuration": 0,
+      "fadeOutDuration": 0
     },
     "StatusBar": {
       "style": "DARK",

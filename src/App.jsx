@@ -37,12 +37,12 @@ function AppInner() {
   // ── Native setup: push notification routing, badge count ──
   useNativeSetup()
 
-  // ── Hide splash screen once React has mounted ─────────────
+  // ── Hide native splash immediately — video in index.html takes over ──
   useEffect(() => {
     const hideSplash = async () => {
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
-        await SplashScreen.hide({ fadeOutDuration: 500 })
+        await SplashScreen.hide({ fadeOutDuration: 0 })
       } catch {
         // Not native — silently ignore
       }

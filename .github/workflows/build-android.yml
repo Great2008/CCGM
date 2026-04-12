@@ -143,6 +143,45 @@ jobs:
           print("✅ mipmap-anydpi-v26 adaptive XMLs written")
           PYEOF
 
+      - name: Generate Android splash drawable from logo
+        run: |
+          python3 - << 'PYEOF'
+          from PIL import Image
+          import os
+
+          # Android splash drawable sizes per density
+          densities = {
+              "drawable-mdpi":    (480,  800),
+              "drawable-hdpi":    (720,  1280),
+              "drawable-xhdpi":   (960,  1600),
+              "drawable-xxhdpi":  (1440, 2560),
+              "drawable-xxxhdpi": (1440, 2560),
+          }
+
+          LOGO_SRC   = "public/logo.png"
+          BG_COLOR   = (15, 31, 61, 255)  # #0f1f3d — brand dark blue
+          LOGO_SCALE = 0.35               # logo width = 35% of screen width
+
+          logo = Image.open(LOGO_SRC).convert("RGBA")
+
+          for density, (w, h) in densities.items():
+              out_dir = f"android/app/src/main/res/{density}"
+              os.makedirs(out_dir, exist_ok=True)
+
+              canvas = Image.new("RGBA", (w, h), BG_COLOR)
+
+              logo_w = int(w * LOGO_SCALE)
+              logo_h = int(logo.height * (logo_w / logo.width))
+              resized = logo.resize((logo_w, logo_h), Image.LANCZOS)
+
+              x = (w - logo_w) // 2
+              y = (h - logo_h) // 2
+              canvas.paste(resized, (x, y), resized)
+
+              canvas.convert("RGB").save(f"{out_dir}/splash.png")
+              print(f"✅ {density}/splash.png ({w}x{h})")
+          PYEOF
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
