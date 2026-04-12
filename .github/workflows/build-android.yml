@@ -95,7 +95,7 @@ jobs:
 
           # density -> (foreground_canvas_px, launcher_size_px, source_icon)
           # Foreground canvas = 1.5x launcher size (108dp equivalent per density)
-          # Logo rendered at 66% of canvas = natural padding / safe zone
+          # Logo rendered at 50% of canvas = natural padding / safe zone
           densities = {
               "mipmap-mdpi":    (108, 48,  "public/icon-72.png"),
               "mipmap-hdpi":    (162, 72,  "public/icon-96.png"),
@@ -106,7 +106,7 @@ jobs:
 
           def make_foreground(src_path, canvas_px):
               logo = Image.open(src_path).convert("RGBA")
-              logo_size = int(canvas_px * 0.66)
+              logo_size = int(canvas_px * 0.50)
               logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
               canvas = Image.new("RGBA", (canvas_px, canvas_px), (0, 0, 0, 0))
               offset = (canvas_px - logo_size) // 2
