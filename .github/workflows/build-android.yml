@@ -233,6 +233,36 @@ jobs:
               print(f"✅ {density}/splash.png ({W}x{H})")
           PYEOF
 
+      - name: Patch Android styles to use custom splash drawable
+        run: |
+          STYLES="android/app/src/main/res/values/styles.xml"
+
+          # Write a clean styles.xml that:
+          # 1. Uses our custom splash.png as the window background
+          # 2. Makes it full screen / immersive
+          cat > $STYLES << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+
+              <!-- Base app theme -->
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:windowBackground">@drawable/splash</item>
+                  <item name="colorPrimary">@color/colorPrimary</item>
+                  <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+                  <item name="colorAccent">@color/colorAccent</item>
+              </style>
+
+              <!-- Splash screen theme — full screen, uses our custom drawable -->
+              <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
+                  <item name="android:windowBackground">@drawable/splash</item>
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:windowContentOverlay">@null</item>
+              </style>
+
+          </resources>
+          EOF
+          echo "✅ styles.xml patched to use custom splash drawable"
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
