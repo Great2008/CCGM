@@ -236,32 +236,47 @@ jobs:
       - name: Patch Android styles to use custom splash drawable
         run: |
           STYLES="android/app/src/main/res/values/styles.xml"
+          DRAWABLE="android/app/src/main/res/drawable/background_splash.xml"
 
-          # Write a clean styles.xml that:
-          # 1. Uses our custom splash.png as the window background
-          # 2. Makes it full screen / immersive
+          # Write a layer-list drawable that fills the screen completely
+          # Layer 1: solid green background (covers any letterbox gaps)
+          # Layer 2: our splash.png scaled to fill
+          cat > $DRAWABLE << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item>
+                  <color android:color="#00b250"/>
+              </item>
+              <item>
+                  <bitmap
+                      android:src="@drawable/splash"
+                      android:gravity="fill"/>
+              </item>
+          </layer-list>
+          EOF
+          echo "✅ background_splash.xml layer-list written"
+
+          # Patch styles.xml to use the layer-list
           cat > $STYLES << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
 
-              <!-- Base app theme -->
               <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:windowBackground">@drawable/splash</item>
+                  <item name="android:windowBackground">@drawable/background_splash</item>
                   <item name="colorPrimary">@color/colorPrimary</item>
                   <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
                   <item name="colorAccent">@color/colorAccent</item>
               </style>
 
-              <!-- Splash screen theme — full screen, uses our custom drawable -->
               <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
-                  <item name="android:windowBackground">@drawable/splash</item>
+                  <item name="android:windowBackground">@drawable/background_splash</item>
                   <item name="android:windowFullscreen">true</item>
                   <item name="android:windowContentOverlay">@null</item>
               </style>
 
           </resources>
           EOF
-          echo "✅ styles.xml patched to use custom splash drawable"
+          echo "✅ styles.xml patched to use layer-list splash"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
