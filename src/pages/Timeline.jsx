@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 import { auditLog } from '../lib/auditLog'
 import { Link, useNavigate } from 'react-router-dom'
-import SEO from '../components/SEO'
 
 const POST_TYPES = [
   { id:'update',    label:'📝 Update',    color:'var(--brand-light)' },
