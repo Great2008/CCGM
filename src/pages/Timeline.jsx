@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
 import { auditLog } from '../lib/auditLog'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ShareButtonLight } from '../components/ShareButton'
 
 const POST_TYPES = [
   { id:'update',    label:'📝 Update',    color:'var(--brand-light)' },
@@ -55,7 +56,7 @@ function PostCard({ post, currentUserId, onReact, onComment, onDelete, isAdmin, 
   }
 
   return (
-    <div style={{background: 'var(--white, white)',borderRadius:16,boxShadow:'var(--shadow-sm)',overflow:'hidden',border:'1px solid rgba(15,31,61,0.05)',marginBottom:16}}>
+    <div id={`post-${post.id}`} style={{background: 'var(--white, white)',borderRadius:16,boxShadow:'var(--shadow-sm)',overflow:'hidden',border:'1px solid rgba(15,31,61,0.05)',marginBottom:16}}>
       {post.pinned && (
         <div style={{background:'linear-gradient(90deg,#fef3c7,#fffbeb)',padding:'6px 18px',fontSize:'0.75rem',fontWeight:700,color:'#92400e',display:'flex',alignItems:'center',gap:6}}>
           📌 Pinned by admin
@@ -97,6 +98,13 @@ function PostCard({ post, currentUserId, onReact, onComment, onDelete, isAdmin, 
         <button onClick={toggleComments} style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:5,padding:'6px 14px',borderRadius:30,border:'1.5px solid #e2e8f0',background:showComments?'var(--brand-pale)':'white',color:showComments?'var(--brand-light)':'var(--text-light)',cursor:'pointer',fontSize:'0.82rem',fontFamily:'var(--font-body)'}}>
           💬 {post.comment_count>0?post.comment_count:''} Comment{post.comment_count!==1?'s':''}
         </button>
+        <ShareButtonLight
+          title={post.profiles?.display_name || 'CCG World'}
+          text={post.body}
+          url={`${window.location.origin}/timeline?post=${post.id}`}
+          label="Share"
+          style={{fontSize:'0.82rem', padding:'6px 14px'}}
+        />
       </div>
 
       {showComments&&(
@@ -595,6 +603,7 @@ function ProfileModal({ profile, onClose, onUpdate }) {
 /* ── Main Timeline Page ── */
 export default function Timeline() {
   const { user, profile, loading: authLoading, signOut, isAdmin, updateProfile } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [posts, setPosts]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [body, setBody]         = useState('')
@@ -648,6 +657,24 @@ export default function Timeline() {
   }
 
   useEffect(() => { loadPosts(); loadMyReports() }, [user])
+
+  // Deep-link: scroll to and highlight post from ?post=<id> (e.g. from a shared link)
+  useEffect(() => {
+    const postId = searchParams.get('post')
+    if (!postId || posts.length === 0) return
+    // Clean the param from the URL without re-navigating
+    setSearchParams(prev => { prev.delete('post'); return prev }, { replace: true })
+    // Scroll to the post element after a short render delay
+    setTimeout(() => {
+      const el = document.getElementById(`post-${postId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.style.transition = 'box-shadow 0.3s'
+        el.style.boxShadow = '0 0 0 3px var(--brand-light)'
+        setTimeout(() => { el.style.boxShadow = '' }, 2000)
+      }
+    }, 400)
+  }, [posts, searchParams])
 
   // Realtime subscription
   useEffect(() => {
