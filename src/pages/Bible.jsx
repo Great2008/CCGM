@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { KJV_BOOKS } from '../data/bibleData'
+import SEO from '../components/SEO'
 
 // Popular verses — always available instantly, no fetch needed
 const POPULAR = [
@@ -20,28 +21,17 @@ const POPULAR = [
 // KJV text fetched from public domain CDN and aggressively cached in localStorage
 // After reading a chapter online once, it is permanently available offline
 const BIBLE_CDN = 'https://cdn.jsdelivr.net/gh/thiagobodruk/bible@master/json/en_kjv.json'
-const CACHE_META = 'ccogm_kjv_loaded'
-const CACHE_VER  = 'ccogm_kjv_ver'
-const CURRENT_VER = '3'  // bump this to force a re-cache when mapping bugs are fixed
+const CACHE_META = 'ccogm_kjv_loaded_v4' // v4: fixed ez→EZK, re→REV (correct API abbrevs)
+
+// Clean up stale keys from previous versions
+;['EZE','RV','EZK_bad'].forEach(bad => {
+  for (let c = 1; c <= 50; c++) localStorage.removeItem(`kjv_${bad}_${c}`)
+})
+;['ccogm_kjv_loaded_v1','ccogm_kjv_loaded_v2','ccogm_kjv_loaded_v3'].forEach(k => localStorage.removeItem(k))
 const CHAPTER_KEY = (bookId, ch) => `kjv_${bookId}_${ch}`
 
 // In-memory store for the session
 let KJV_MEMORY = null
-
-// ── Migration: if cache version is outdated, wipe and re-download ──────────
-;(function migrateBibleCache() {
-  try {
-    const storedVer = localStorage.getItem(CACHE_VER)
-    if (storedVer !== CURRENT_VER) {
-      // Clear old broken cache
-      const keys = Object.keys(localStorage).filter(k => k.startsWith('kjv_'))
-      keys.forEach(k => localStorage.removeItem(k))
-      localStorage.removeItem(CACHE_META)
-      localStorage.setItem(CACHE_VER, CURRENT_VER)
-      KJV_MEMORY = null
-    }
-  } catch {}
-})()
 
 function useStorage(key, def) {
   const [val, setVal] = useState(() => {
@@ -49,6 +39,23 @@ function useStorage(key, def) {
   })
   const save = v => { setVal(v); try { localStorage.setItem(key, JSON.stringify(v)) } catch {} }
   return [val, save]
+}
+
+// Highlight matched words in a verse text — returns array of {text, highlight} segments
+function highlightWords(text, query) {
+  if (!query.trim()) return [{ text, highlight: false }]
+  const parts = []
+  const lower = text.toLowerCase()
+  const q = query.toLowerCase().trim()
+  let i = 0
+  while (i < text.length) {
+    const idx = lower.indexOf(q, i)
+    if (idx === -1) { parts.push({ text: text.slice(i), highlight: false }); break }
+    if (idx > i) parts.push({ text: text.slice(i, idx), highlight: false })
+    parts.push({ text: text.slice(idx, idx + q.length), highlight: true })
+    i = idx + q.length
+  }
+  return parts
 }
 
 // Persist a full book's chapters to localStorage for offline use
@@ -91,7 +98,7 @@ async function loadFullBible(onProgress) {
       'act':'ACT','rm':'ROM','1co':'1CO','2co':'2CO','gl':'GAL','ep':'EPH',
       'ph':'PHP','cl':'COL','1ts':'1TH','2ts':'2TH','1tm':'1TI','2tm':'2TI',
       'tt':'TIT','phm':'PHM','hb':'HEB','jm':'JAS','1pe':'1PE','2pe':'2PE',
-      '1jo':'1JN','2jo':'2JN','3jo':'3JN','jd':'JUD','re':'REV','re':'REV'
+      '1jo':'1JN','2jo':'2JN','3jo':'3JN','jd':'JUD','re':'REV'
     }
 
     onProgress('Caching all books offline...')
@@ -130,6 +137,7 @@ export default function Bible() {
   const [downloadProgress, setDownloadProgress] = useState('')
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState([])
+  const [searchTotal, setSearchTotal] = useState(0)
   const [highlightVerse, setHighlightVerse] = useState(null)
   const [popularVerses, setPopularVerses] = useState({})
 
@@ -206,33 +214,42 @@ export default function Bible() {
     if (book) { setSelBook(book); setSelChapter(ch); setHighlightVerse(v); setTab('read') }
   }
 
-  const handleSearch = e => {
-    e.preventDefault()
-    if (!search.trim()) return
+  const runSearch = (q) => {
+    if (!q.trim()) { setSearchResults([]); setSearchTotal(0); return }
     if (cacheStatus !== 'done') {
-      setSearchResults([{ reference: '', text: 'Full-text search is available after the Bible finishes downloading. It auto-downloads when you are online.' }])
+      setSearchResults([{ reference: '', text: cacheStatus === 'loading'
+        ? 'Bible is downloading in the background. Search will be ready shortly.'
+        : 'Connect to the internet so the Bible can download, then search will work fully offline.' }])
+      setSearchTotal(0)
       return
     }
-    const q = search.toLowerCase()
+    const lower = q.toLowerCase().trim()
     const results = []
+    let total = 0
     for (const book of KJV_BOOKS) {
-      if (results.length >= 60) break
       for (let ci = 1; ci <= book.chapters; ci++) {
-        if (results.length >= 60) break
         try {
           const cached = localStorage.getItem(CHAPTER_KEY(book.id, ci))
           if (!cached) continue
           const chVerses = JSON.parse(cached)
           for (const v of chVerses) {
-            if (v.text && v.text.toLowerCase().includes(q)) {
-              results.push({ book, chapter: ci, verse: v.verse, text: v.text, reference: `${book.name} ${ci}:${v.verse}` })
-              if (results.length >= 60) break
+            if (v.text && v.text.toLowerCase().includes(lower)) {
+              total++
+              if (results.length < 100) {
+                results.push({ book, chapter: ci, verse: v.verse, text: v.text, reference: `${book.name} ${ci}:${v.verse}` })
+              }
             }
           }
         } catch {}
       }
     }
     setSearchResults(results)
+    setSearchTotal(total)
+  }
+
+  const handleSearch = e => {
+    e.preventDefault()
+    runSearch(search)
   }
 
   const chNums = Array.from({ length: selBook.chapters }, (_, i) => i + 1)
@@ -245,6 +262,11 @@ export default function Bible() {
 
   return (
     <>
+      <SEO
+        title="Bible"
+        description="Read the full King James Version Bible online and offline. CCG World — Christian Church Of God Mission."
+        path="/bible"
+      />
       <div style={{ background: 'linear-gradient(135deg, var(--brand-deep) 0%, var(--brand-mid) 100%)', padding: 'clamp(80px,12vw,120px) 5% 0' }}>
         <div className="container">
           <div className="bible-header-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, paddingBottom: 24 }}>
@@ -372,32 +394,67 @@ export default function Bible() {
 
           {tab === 'search' && (
             <div style={{ paddingTop: 32, maxWidth: 800 }}>
+              {/* Search bar */}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && runSearch(search)}
+                  placeholder='Search the entire KJV Bible — e.g. "grace", "faith", "love"'
+                  style={{ flex: 1, padding: '13px 20px', borderRadius: 40, border: '1.5px solid #ddd', fontSize: '1rem', fontFamily: 'var(--font-body)', outline: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+                  autoFocus
+                />
+                <button onClick={handleSearch} className="btn btn-green" style={{ whiteSpace: 'nowrap' }}>🔍 Search</button>
+              </div>
+
+              {/* Status line */}
               {cacheStatus !== 'done' && (
-                <div style={{ background: '#fff9e6', border: '1px solid #ffe066', borderRadius: 10, padding: '14px 18px', marginBottom: 20, fontSize: '0.9rem', color: '#665500' }}>
-                  ⏳ {cacheStatus === 'loading' ? 'Bible is downloading in the background. Full-text search will be available shortly.' : 'Connect to the internet to enable full-text search across all 66 books.'}
+                <div style={{ background: '#fff9e6', border: '1px solid #ffe066', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: '0.85rem', color: '#665500' }}>
+                  ⏳ {cacheStatus === 'loading'
+                    ? 'Bible is downloading in the background — search will be ready shortly.'
+                    : 'Connect to the internet so the Bible can download, then full-text search works offline too.'}
                 </div>
               )}
-              <form onSubmit={handleSearch} style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
-                <input value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder='Search the entire KJV Bible — e.g. "grace", "love", "faith"'
-                  style={{ flex: 1, padding: '13px 20px', borderRadius: 40, border: '1.5px solid #ddd', fontSize: '1rem', fontFamily: 'var(--font-body)', outline: 'none' }} />
-                <button type="submit" className="btn btn-green">🔍 Search</button>
-              </form>
-              {searchResults.length > 0 && (
-                <div style={{ marginBottom: 12, fontSize: '0.82rem', color: 'var(--text-light)' }}>
-                  {searchResults[0].reference ? `${searchResults.length} results for "${search}"` : ''}
+              {searchTotal > 0 && (
+                <div style={{ marginBottom: 16, fontSize: '0.82rem', color: 'var(--text-light)' }}>
+                  {searchTotal > 100
+                    ? `Showing first 100 of ${searchTotal.toLocaleString()} results for "${search}"`
+                    : `${searchTotal.toLocaleString()} result${searchTotal === 1 ? '' : 's'} for "${search}"`}
                 </div>
               )}
+              {searchResults.length === 0 && search.trim() && searchTotal === 0 && cacheStatus === 'done' && (
+                <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-light)' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 10 }}>🔍</div>
+                  No verses found for <strong>"{search}"</strong>
+                </div>
+              )}
+
+              {/* Results */}
               {searchResults.map((r, i) => (
                 <div key={i} onClick={() => r.reference && goToVerse(r.book?.id, r.chapter, r.verse)} style={{
-                  background: 'var(--white, white)', borderRadius: 12, padding: '18px 22px', marginBottom: 12,
+                  background: 'var(--white, white)', borderRadius: 12, padding: '16px 20px', marginBottom: 10,
                   boxShadow: 'var(--shadow-sm)', borderLeft: `4px solid ${r.reference ? 'var(--green-mid)' : '#ddd'}`,
                   cursor: r.reference ? 'pointer' : 'default', transition: 'transform 0.15s',
                 }}
                 onMouseEnter={e => r.reference && (e.currentTarget.style.transform = 'translateX(4px)')}
                 onMouseLeave={e => e.currentTarget.style.transform = 'translateX(0)'}>
-                  {r.reference && <div style={{ fontWeight: 700, color: 'var(--green-deep)', marginBottom: 6, fontSize: '0.88rem' }}>{r.reference}</div>}
-                  <p style={{ fontSize: fontSize - 1, lineHeight: 1.8, color: r.reference ? 'var(--text-dark)' : 'var(--text-light)', margin: 0 }}>{r.text}</p>
+                  {r.reference && (
+                    <div style={{ fontWeight: 700, color: 'var(--green-deep)', marginBottom: 6, fontSize: '0.85rem' }}>
+                      {r.reference}
+                    </div>
+                  )}
+                  <p style={{ fontSize: fontSize - 1, lineHeight: 1.8, color: r.reference ? 'var(--text-dark)' : 'var(--text-light)', margin: 0 }}>
+                    {r.reference
+                      ? highlightWords(r.text, search).map((seg, si) => (
+                          <span key={si} style={seg.highlight ? {
+                            background: '#fff176', color: '#333', borderRadius: 3,
+                            padding: '0 2px', fontWeight: 700,
+                          } : {}}>
+                            {seg.text}
+                          </span>
+                        ))
+                      : r.text}
+                  </p>
                 </div>
               ))}
             </div>

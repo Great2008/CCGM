@@ -10,7 +10,7 @@
     "webContentsDebuggingEnabled": false
   },
   "ios": {
-    "backgroundColor": "#0f1f3d",
+    "backgroundColor": "#00b250",
     "contentInset": "automatic",
     "limitsNavigationsToAppBoundDomains": true
   },
@@ -29,7 +29,7 @@
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#0f1f3d"
+      "backgroundColor": "#00b250"
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]

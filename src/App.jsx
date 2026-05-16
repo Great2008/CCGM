@@ -1,10 +1,9 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { HelmetProvider } from 'react-helmet-async'
+import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
-import { useNativeSetup } from './hooks/useNativeSetup'
-import AppSplash from './components/AppSplash'
-import UpdatePrompt from './components/UpdatePrompt'
 import Navbar     from './components/Navbar'
 import Footer     from './components/Footer'
 import Home       from './pages/Home'
@@ -29,33 +28,15 @@ import Profile    from './pages/Profile'
 import Search       from './pages/Search'
 import Certificate  from './pages/Certificate'
 import Guidelines  from './pages/Guidelines'
+import NotFound    from './pages/NotFound'
 import Verify       from './pages/Verify'
 import Programme    from './pages/Programme'
 import SuspensionNotice from './components/SuspensionNotice'
 
 function AppInner() {
   const { user } = useAuth()
-  const [splashDone, setSplashDone] = useState(false)
-
-  // ── Native setup: push notification routing, badge count ──
-  useNativeSetup()
-
-  // ── Hide native splash immediately — React splash takes over ──
-  useEffect(() => {
-    const hideSplash = async () => {
-      try {
-        const { SplashScreen } = await import('@capacitor/splash-screen')
-        await SplashScreen.hide({ fadeOutDuration: 0 })
-      } catch {
-        // Not native — silently ignore
-      }
-    }
-    hideSplash()
-  }, [])
-
   return (
     <>
-      {!splashDone && <AppSplash onDone={() => setSplashDone(true)} />}
       <Navbar />
       <main style={{ overflowX: 'hidden' }}>
         <Routes>
@@ -82,24 +63,33 @@ function AppInner() {
           <Route path="/verify"           element={<Verify />} />
           <Route path="/programme"        element={<Programme />} />
           <Route path="/guidelines"       element={<Guidelines />} />
+          <Route path="*"                 element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
       <PushPrompt user={user} />
       <SuspensionNotice />
-      {splashDone && <UpdatePrompt />}
+      <Analytics />
     </>
   )
 }
 
 export default function App() {
+  // Let the HTML splash show for 2.5s then fade out (600ms transition)
+  useEffect(() => {
+    const t = setTimeout(() => window.__ccgHideSplash?.(), 2500)
+    return () => clearTimeout(t)
+  }, [])
+
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppInner />
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppInner />
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </HelmetProvider>
   )
 }
