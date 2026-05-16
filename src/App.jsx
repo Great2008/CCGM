@@ -1,37 +1,38 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { HelmetProvider } from 'react-helmet-async'
-import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
-import Navbar     from './components/Navbar'
-import Footer     from './components/Footer'
-import Home       from './pages/Home'
-import Sermons    from './pages/Sermons'
-import Events     from './pages/Events'
-import About      from './pages/About'
-import Contact    from './pages/Contact'
-import Gallery    from './pages/Gallery'
-import Blog       from './pages/Blog'
-import Bible      from './pages/Bible'
-import Hymnal     from './pages/Hymnal'
-import Devotional from './pages/Devotional'
-import Timeline   from './pages/Timeline'
-import Live       from './pages/Live'
-import PushPrompt from './components/PushPrompt'
-import SabbathSchool from './pages/SabbathSchool'
-import Notifications from './pages/Notifications'
-import FindChurch from './pages/FindChurch'
-import PrayerWall from './pages/PrayerWall'
-import Studio     from './pages/Studio'
-import Profile    from './pages/Profile'
-import Search       from './pages/Search'
-import Certificate  from './pages/Certificate'
-import Guidelines  from './pages/Guidelines'
-import NotFound    from './pages/NotFound'
-import Verify       from './pages/Verify'
-import Programme    from './pages/Programme'
+import { useNativeSetup } from './hooks/useNativeSetup'
+import Navbar          from './components/Navbar'
+import Footer          from './components/Footer'
+import AppSplash       from './components/AppSplash'
+import UpdatePrompt    from './components/UpdatePrompt'
+import PushPrompt      from './components/PushPrompt'
 import SuspensionNotice from './components/SuspensionNotice'
+import Home            from './pages/Home'
+import Sermons         from './pages/Sermons'
+import Events          from './pages/Events'
+import About           from './pages/About'
+import Contact         from './pages/Contact'
+import Gallery         from './pages/Gallery'
+import Blog            from './pages/Blog'
+import Bible           from './pages/Bible'
+import Hymnal          from './pages/Hymnal'
+import Devotional      from './pages/Devotional'
+import Timeline        from './pages/Timeline'
+import Live            from './pages/Live'
+import SabbathSchool   from './pages/SabbathSchool'
+import Notifications   from './pages/Notifications'
+import FindChurch      from './pages/FindChurch'
+import PrayerWall      from './pages/PrayerWall'
+import Studio          from './pages/Studio'
+import Profile         from './pages/Profile'
+import Search          from './pages/Search'
+import Certificate     from './pages/Certificate'
+import Verify          from './pages/Verify'
+import Programme       from './pages/Programme'
+import Guidelines      from './pages/Guidelines'
+import NotFound        from './pages/NotFound'
 
 function AppInner() {
   const { user } = useAuth()
@@ -40,56 +41,67 @@ function AppInner() {
       <Navbar />
       <main style={{ overflowX: 'hidden' }}>
         <Routes>
-          <Route path="/"           element={<Home />} />
-          <Route path="/sermons"    element={<Sermons />} />
-          <Route path="/events"     element={<Events />} />
-          <Route path="/about"      element={<About />} />
-          <Route path="/contact"    element={<Contact />} />
-          <Route path="/gallery"    element={<Gallery />} />
-          <Route path="/blog"       element={<Blog />} />
-          <Route path="/bible"      element={<Bible />} />
-          <Route path="/hymnal"     element={<Hymnal />} />
-          <Route path="/devotional" element={<Devotional />} />
-          <Route path="/timeline"   element={<Timeline />} />
-          <Route path="/live"       element={<Live />} />
+          <Route path="/"               element={<Home />} />
+          <Route path="/sermons"        element={<Sermons />} />
+          <Route path="/events"         element={<Events />} />
+          <Route path="/about"          element={<About />} />
+          <Route path="/contact"        element={<Contact />} />
+          <Route path="/gallery"        element={<Gallery />} />
+          <Route path="/blog"           element={<Blog />} />
+          <Route path="/bible"          element={<Bible />} />
+          <Route path="/hymnal"         element={<Hymnal />} />
+          <Route path="/devotional"     element={<Devotional />} />
+          <Route path="/timeline"       element={<Timeline />} />
+          <Route path="/live"           element={<Live />} />
           <Route path="/sabbath-school" element={<SabbathSchool />} />
           <Route path="/notifications"  element={<Notifications />} />
-          <Route path="/find-church"     element={<FindChurch />} />
-          <Route path="/prayer-wall"     element={<PrayerWall />} />
-          <Route path="/studio"          element={<Studio />} />
-          <Route path="/profile"         element={<Profile />} />
-          <Route path="/search"          element={<Search />} />
-          <Route path="/certificate"      element={<Certificate />} />
-          <Route path="/verify"           element={<Verify />} />
-          <Route path="/programme"        element={<Programme />} />
-          <Route path="/guidelines"       element={<Guidelines />} />
-          <Route path="*"                 element={<NotFound />} />
+          <Route path="/find-church"    element={<FindChurch />} />
+          <Route path="/prayer-wall"    element={<PrayerWall />} />
+          <Route path="/studio"         element={<Studio />} />
+          <Route path="/profile"        element={<Profile />} />
+          <Route path="/search"         element={<Search />} />
+          <Route path="/certificate"    element={<Certificate />} />
+          <Route path="/verify"         element={<Verify />} />
+          <Route path="/programme"      element={<Programme />} />
+          <Route path="/guidelines"     element={<Guidelines />} />
+          <Route path="*"               element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
       <PushPrompt user={user} />
       <SuspensionNotice />
-      <Analytics />
     </>
   )
 }
 
 export default function App() {
-  // Let the HTML splash show for 2.5s then fade out (600ms transition)
+  const [splashDone, setSplashDone] = useState(false)
+
+  // Native setup: push notification routing, badge count
+  useNativeSetup()
+
+  // Hide native splash immediately — React splash takes over
   useEffect(() => {
-    const t = setTimeout(() => window.__ccgHideSplash?.(), 2500)
-    return () => clearTimeout(t)
+    const hideSplash = async () => {
+      try {
+        const { SplashScreen } = await import('@capacitor/splash-screen')
+        await SplashScreen.hide({ fadeOutDuration: 0 })
+      } catch {
+        // Not native — silently ignore
+      }
+    }
+    hideSplash()
   }, [])
 
   return (
-    <HelmetProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AppInner />
-          </BrowserRouter>
-        </AuthProvider>
-      </ThemeProvider>
-    </HelmetProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          {!splashDone && <AppSplash onDone={() => setSplashDone(true)} />}
+          <AppInner />
+          {splashDone && <UpdatePrompt />}
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
