@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { KJV_BOOKS } from '../data/bibleData'
-import SEO from '../components/SEO'
 
 // Popular verses — always available instantly, no fetch needed
 const POPULAR = [
