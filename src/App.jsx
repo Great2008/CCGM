@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useNativeSetup } from './hooks/useNativeSetup'
 import Navbar          from './components/Navbar'
 import Footer          from './components/Footer'
-import AppSplash       from './components/AppSplash'
-import UpdatePrompt    from './components/UpdatePrompt'
 import PushPrompt      from './components/PushPrompt'
 import SuspensionNotice from './components/SuspensionNotice'
 import Home            from './pages/Home'
@@ -75,17 +73,14 @@ function AppInner() {
 }
 
 export default function App() {
-  const [splashDone, setSplashDone] = useState(false)
-
-  // Native setup: push notification routing, badge count
   useNativeSetup()
 
-  // Hide native splash immediately — React splash takes over
+  // Hide native splash once React is mounted
   useEffect(() => {
     const hideSplash = async () => {
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
-        await SplashScreen.hide({ fadeOutDuration: 0 })
+        await SplashScreen.hide({ fadeOutDuration: 300 })
       } catch {
         // Not native — silently ignore
       }
@@ -97,13 +92,7 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
-          {!splashDone
-            ? <AppSplash onDone={() => setSplashDone(true)} />
-            : <>
-                <AppInner />
-                <UpdatePrompt />
-              </>
-          }
+          <AppInner />
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
