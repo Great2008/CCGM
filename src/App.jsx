@@ -97,9 +97,13 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
-          {!splashDone && <AppSplash onDone={() => setSplashDone(true)} />}
-          <AppInner />
-          {splashDone && <UpdatePrompt />}
+          {!splashDone
+            ? <AppSplash onDone={() => setSplashDone(true)} />
+            : <>
+                <AppInner />
+                <UpdatePrompt />
+              </>
+          }
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
