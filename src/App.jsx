@@ -14,6 +14,8 @@ import About      from './pages/About'
 import Contact    from './pages/Contact'
 import Gallery    from './pages/Gallery'
 import Blog       from './pages/Blog'
+import Newsletter from './pages/Newsletter'
+import MealTicket from './pages/MealTicket'
 import Bible      from './pages/Bible'
 import Hymnal     from './pages/Hymnal'
 import Devotional from './pages/Devotional'
@@ -66,6 +68,8 @@ function AppInner() {
           <Route path="/contact"    element={<Contact />} />
           <Route path="/gallery"    element={<Gallery />} />
           <Route path="/blog"       element={<Blog />} />
+          <Route path="/newsletter" element={<Newsletter />} />
+          <Route path="/meal-ticket" element={<MealTicket />} />
           <Route path="/bible"      element={<Bible />} />
           <Route path="/hymnal"     element={<Hymnal />} />
           <Route path="/devotional" element={<Devotional />} />

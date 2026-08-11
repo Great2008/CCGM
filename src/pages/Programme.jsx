@@ -251,7 +251,7 @@ export default function Programme() {
 
           {/* Day tabs — anchored to bottom of hero */}
           {days.length > 0 && (
-            <div style={{ display:'flex', gap:0, overflowX:'auto', justifyContent:'center', flexWrap:'nowrap', marginBottom:0 }}>
+            <div style={{ display:'flex', gap:0, overflowX:'auto', justifyContent:'flex-start', flexWrap:'nowrap', marginBottom:0 }}>
               {days.map((day, idx) => (
                 <button
                   key={day.id}
@@ -393,9 +393,6 @@ function SessionCard({ session, agenda, isRsvpd, count, loading, user, onRsvp })
             <div style={{ color:'var(--text-light)', fontSize:'0.72rem' }}>{fmtTime(session.time_end)}</div>
           )}
         </div>
-
-        {/* Divider */}
-        <div style={{ width:2, alignSelf:'stretch', background:'#e2e8f0', borderRadius:2, flexShrink:0, minHeight:40 }} />
 
         {/* Content */}
         <div style={{ flex:1, minWidth:0 }}>
