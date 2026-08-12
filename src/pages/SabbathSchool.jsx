@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh'
 import supabase from '../lib/supabase'
+import SEO from '../components/SEO'
+import { parseBlocks, ReadingContent, FormattedText } from '../lib/textFormat'
+import { exportSabbathLessonPDF, PDF_FONT_OPTIONS } from '../lib/exportPdf'
 
 const CACHE_KEY = 'ccg-sabbath-current'
 const FONT_SIZE_KEY = 'ccg-sabbath-fontsize'
+const PDF_FONT_KEY = 'ccg-sabbath-pdffont'
 
 function saveCache(lesson) {
   try {
@@ -74,47 +79,6 @@ function thisWeekLesson(lessons) {
   )[0]
 }
 
-const parseBlocks = (text) => {
-  if (!text) return []
-  const lines = text.split('\n')
-  const blocks = []
-  let paraLines = []
-  const flushPara = () => {
-    const joined = paraLines.join(' ').trim()
-    if (joined) blocks.push(joined)
-    paraLines = []
-  }
-  lines.forEach(line => {
-    const trimmed = line.trim()
-    if (/^##/.test(trimmed) && trimmed.length > 2) { flushPara(); blocks.push(trimmed) }
-    else if (/^#/.test(trimmed) && trimmed.length > 1 && !trimmed.startsWith('##')) { flushPara(); blocks.push(trimmed) }
-    else if (trimmed === '') { flushPara() }
-    else { paraLines.push(trimmed) }
-  })
-  flushPara()
-  return blocks.filter(Boolean)
-}
-
-function ReadingContent({ blocks, fontSize }) {
-  return (
-    <div style={{ lineHeight: 1.9, color: 'var(--text-dark)', fontSize: fontSize + 'px' }}>
-      {blocks.map((para, i) =>
-        /^##/.test(para) ? (
-          <h3 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-deep)', fontSize: (fontSize + 4) + 'px', margin: '32px 0 14px', borderBottom: '2px solid var(--brand-pale)', paddingBottom: 6 }}>
-            {para.replace(/^##\s*/, '')}
-          </h3>
-        ) : /^#/.test(para) ? (
-          <h4 key={i} style={{ fontFamily: 'var(--font-display)', color: 'var(--brand-light)', fontSize: (fontSize + 2) + 'px', margin: '22px 0 10px', fontWeight: 700 }}>
-            {para.replace(/^#\s*/, '')}
-          </h4>
-        ) : (
-          <p key={i} style={{ marginBottom: 20 }}>{para}</p>
-        )
-      )}
-    </div>
-  )
-}
-
 export default function SabbathSchool() {
   const [lessons, setLessons]     = useState([])
   const [selected, setSelected]   = useState(null)
@@ -127,6 +91,15 @@ export default function SabbathSchool() {
   const [fontSize, setFontSize]   = useState(() => {
     try { return parseInt(localStorage.getItem(FONT_SIZE_KEY)) || 17 } catch { return 17 }
   })
+  const [pdfFont, setPdfFont]     = useState(() => {
+    try { return localStorage.getItem(PDF_FONT_KEY) || 'helvetica' } catch { return 'helvetica' }
+  })
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  const changePdfFont = (value) => {
+    setPdfFont(value)
+    try { localStorage.setItem(PDF_FONT_KEY, value) } catch {}
+  }
 
   // Auto-scroll the sidebar list to highlight the active lesson
   useEffect(() => {
@@ -228,6 +201,13 @@ export default function SabbathSchool() {
   const nextLesson = filtered[lessonIdx - 1]
 
   return (
+    <>
+      <SEO
+        title="Sabbath School"
+        description="CCG World Sabbath School — weekly Bible lessons for adults and youth. Study God's Word every Saturday."
+        path="/sabbath-school"
+      />
+      <PullToRefresh onRefresh={() => fetchFresh(selected)}>
     <div style={{ overflowX: 'hidden', width: '100%' }}>
       <style>{`
         @media (max-width: 768px) {
@@ -254,7 +234,7 @@ export default function SabbathSchool() {
       )}
 
       {/* Hero */}
-      <div className="ss-hero" style={{ background: 'linear-gradient(135deg,var(--brand-deep),var(--brand-mid))', padding: 'clamp(90px,14vw,130px) 5% 56px', textAlign: 'center' }}>
+      <div className="ss-hero" style={{ background: 'linear-gradient(160deg,rgba(10,38,18,0.93) 0%,rgba(22,100,52,0.87) 55%,rgba(22,163,74,0.45) 100%),url("https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1600&q=80") center/cover no-repeat', padding: 'clamp(90px,14vw,130px) 5% 56px', textAlign: 'center' }}>
         <span className="section-label">Every Saturday</span>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(2rem,5vw,3rem)', color: 'white', margin: '8px 0 16px' }}>
           Sabbath School
@@ -432,6 +412,25 @@ export default function SabbathSchool() {
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, border: '1.5px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                       🔗 Share
                     </button>
+                    <button
+                      onClick={async () => {
+                        setExportingPdf(true)
+                        try { await exportSabbathLessonPDF(selected, { fontFamily: pdfFont }) }
+                        finally { setExportingPdf(false) }
+                      }}
+                      disabled={exportingPdf}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, border: '1.5px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 700, fontSize: '0.78rem', cursor: exportingPdf ? 'default' : 'pointer', fontFamily: 'var(--font-body)', opacity: exportingPdf ? 0.7 : 1 }}>
+                      {exportingPdf ? '⏳ Generating…' : '⬇️ Export PDF'}
+                    </button>
+                    <select
+                      value={pdfFont}
+                      onChange={e => changePdfFont(e.target.value)}
+                      title="PDF font"
+                      style={{ padding: '5px 10px', borderRadius: 20, border: '1.5px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
+                      {PDF_FONT_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value} style={{ color: 'black' }}>{opt.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Tabs row + desktop T-/T+ */}
@@ -467,7 +466,7 @@ export default function SabbathSchool() {
                     <div>
                       {selected.summary && (
                         <div style={{ background: 'var(--brand-pale)', borderLeft: '4px solid var(--brand-light)', borderRadius: '0 10px 10px 0', padding: '16px 20px', marginBottom: 28, fontStyle: 'italic', color: 'var(--brand-deep)', lineHeight: 1.8, fontSize: fontSize + 'px' }}>
-                          {selected.summary}
+                          <FormattedText text={selected.summary} />
                         </div>
                       )}
                       {selected.body ? (
@@ -488,7 +487,7 @@ export default function SabbathSchool() {
                             {selected.discussion_questions.split('\n').filter(Boolean).map((q, i) => (
                               <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                                 <span style={{ color: 'var(--gold)', fontWeight: 900, flexShrink: 0 }}>{i + 1}.</span>
-                                <span>{q.replace(/^\d+\.\s*/, '')}</span>
+                                <span><FormattedText text={q.replace(/^\d+\.\s*/, '')} /></span>
                               </div>
                             ))}
                           </div>
@@ -523,7 +522,7 @@ export default function SabbathSchool() {
                             {selected.analysis_points.split('\n').filter(Boolean).map((pt, i) => (
                               <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: 'var(--brand-pale)', borderRadius: 12, padding: '14px 18px' }}>
                                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--brand-light)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 900, flexShrink: 0 }}>{i + 1}</span>
-                                <span style={{ color: 'var(--brand-deep)', fontSize: fontSize + 'px', lineHeight: 1.7 }}>{pt.replace(/^\d+\.\s*/, '')}</span>
+                                <span style={{ color: 'var(--brand-deep)', fontSize: fontSize + 'px', lineHeight: 1.7 }}><FormattedText text={pt.replace(/^\d+\.\s*/, '')} /></span>
                               </div>
                             ))}
                           </div>
@@ -565,7 +564,7 @@ export default function SabbathSchool() {
                             )}
                             {selected.divine_message_notes && (
                               <div style={{ background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '12px 16px', fontSize: fontSize + 'px', color: 'var(--text-mid)', lineHeight: 1.8, fontStyle: 'italic' }}>
-                                {selected.divine_message_notes}
+                                <FormattedText text={selected.divine_message_notes} />
                               </div>
                             )}
                           </div>
@@ -602,7 +601,7 @@ export default function SabbathSchool() {
                             )}
                             {selected.evening_notes && (
                               <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 16px', fontSize: fontSize + 'px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.8, fontStyle: 'italic' }}>
-                                {selected.evening_notes}
+                                <FormattedText text={selected.evening_notes} />
                               </div>
                             )}
                           </div>
@@ -632,5 +631,7 @@ export default function SabbathSchool() {
         </div>
       </div>
     </div>
+    </PullToRefresh>
+    </>
   )
 }

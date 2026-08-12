@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { PullToRefresh } from '../hooks/usePullToRefresh'
 import { useSermonsContent } from '../hooks/useContent'
 import { ShareButtonLight } from '../components/ShareButton'
 import SEO from '../components/SEO'
@@ -327,7 +328,8 @@ function SermonNotesPanel({ sermon, onClose }) {
 // ─── Main Sermons Page ─────────────────────────────────────────────────────────
 export default function Sermons() {
   const { user }                      = useAuth()
-  const { data: sermons, loading }    = useSermonsContent()
+  const [refreshKey, setRefreshKey]   = useState(0)
+  const { data: sermons, loading }    = useSermonsContent(refreshKey)
   const [search,       setSearch]     = useState('')
   const [filter,       setFilter]     = useState('All')
   const [selected,     setSelected]   = useState(null)
@@ -375,6 +377,7 @@ export default function Sermons() {
         path="/sermons"
       />
 
+      <PullToRefresh onRefresh={async () => setRefreshKey(k => k + 1)}>
       <div style={{ overflowX: 'hidden', width: '100%' }}>
         <style>{`
           @media (max-width: 768px) {
@@ -636,6 +639,7 @@ export default function Sermons() {
           </div>
         </div>
       </div>
+      </PullToRefresh>
 
       {/* Notes panel */}
       {notesSermon && (
