@@ -1,5 +1,5 @@
-// CCG World Service Worker v14 — Full Offline PWA + Push Notifications + Sabbath/Devotional/Programme/Events/Newsletter API Cache + BG Image Cache
-const CACHE = 'ccgworld-v14'
+// CCG World Service Worker v15 (mobile) — Full Offline PWA + Push Notifications + API Cache + Bundled BG Images
+const CACHE = 'ccgworld-v15'
 const API_CACHE = 'ccgworld-api-v5'
 const BG_CACHE = 'ccgworld-bg-v1'  // Hero background images from Unsplash — cache-first, permanent
 
@@ -10,6 +10,12 @@ const PRECACHE = [
   '/notifications', '/programme', '/meal-ticket', '/newsletter',
   // Precache WebP logos for instant display
   '/logo.webp', '/logo-sm.webp', '/logo-splash.webp',
+  // Precache bundled hero background images — shipped with the app now
+  // instead of fetched from Unsplash at runtime, so they're guaranteed
+  // available from first launch, even fully offline.
+  '/images/bg/home-hero.jpg', '/images/bg/sabbath-hero.jpg', '/images/bg/newsletter-hero.jpg',
+  '/images/bg/about-hero.jpg', '/images/bg/about-photo.jpg', '/images/bg/hymnal-hero.jpg',
+  '/images/bg/events-hero.jpg', '/images/bg/sermons-hero.jpg',
 ]
 
 self.addEventListener('install', e => {
