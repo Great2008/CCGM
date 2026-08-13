@@ -145,7 +145,7 @@ function SacredSongsTab({ fontSize, changeFontSize }) {
             ) : (
               <div className="hm-card" style={{ background:'white', borderRadius:16, boxShadow:'var(--shadow-sm)', border:'1.5px solid #d1fae5', overflow:'hidden' }}>
                 {/* Header */}
-                <div style={{ background:'linear-gradient(160deg,rgba(10,38,18,0.93) 0%,rgba(22,100,52,0.87) 55%,rgba(22,163,74,0.45) 100%),url("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1600&q=80") center/cover no-repeat', padding:'clamp(20px,4vw,32px) clamp(18px,4vw,32px) 0' }}>
+                <div style={{ background:'linear-gradient(160deg,rgba(10,38,18,0.93) 0%,rgba(22,100,52,0.87) 55%,rgba(22,163,74,0.45) 100%),url("/images/bg/hymnal-hero.jpg") center/cover no-repeat', padding:'clamp(20px,4vw,32px) clamp(18px,4vw,32px) 0' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12, flexWrap:'wrap', marginBottom:10 }}>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'var(--gold)', color:'var(--brand-deep)', padding:'4px 14px', borderRadius:20, fontSize:'0.72rem', fontWeight:900, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:10 }}>
@@ -290,7 +290,7 @@ export default function Hymnal() {
       `}</style>
 
       {/* Hero */}
-      <div className="hm-hero" style={{ background: 'linear-gradient(160deg,rgba(10,38,18,0.93) 0%,rgba(22,100,52,0.87) 55%,rgba(22,163,74,0.45) 100%),url("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1600&q=80") center/cover no-repeat', padding: 'clamp(90px,14vw,130px) 5% 32px', textAlign: 'center' }}>
+      <div className="hm-hero" style={{ background: 'linear-gradient(160deg,rgba(10,38,18,0.93) 0%,rgba(22,100,52,0.87) 55%,rgba(22,163,74,0.45) 100%),url("/images/bg/hymnal-hero.jpg") center/cover no-repeat', padding: 'clamp(90px,14vw,130px) 5% 32px', textAlign: 'center' }}>
         <span className="section-label" style={{ color: 'var(--gold)' }}>Worship & Praise</span>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(2rem,5vw,3rem)', color: 'white', margin: '8px 0 20px' }}>🎵 Hymnal</h1>
 

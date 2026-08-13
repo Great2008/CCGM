@@ -55,7 +55,7 @@ export default function Home() {
       {/* HERO */}
       <section style={{
         minHeight:'100vh',
-        background:`linear-gradient(160deg,rgba(10,38,18,0.92) 0%,rgba(22,100,52,0.85) 55%,rgba(22,163,74,0.4) 100%),url('https://images.unsplash.com/photo-1438232992991-995b671e4b8b?w=1600&q=80') center/cover no-repeat`,
+        background:`linear-gradient(160deg,rgba(10,38,18,0.92) 0%,rgba(22,100,52,0.85) 55%,rgba(22,163,74,0.4) 100%),url('/images/bg/home-hero.jpg') center/cover no-repeat`,
         display:'flex',alignItems:'center',justifyContent:'center',
         textAlign:'center',padding:'clamp(100px,15vw,140px) 20px 80px',
         position:'relative',overflow:'hidden',

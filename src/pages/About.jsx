@@ -2,7 +2,7 @@ export default function About() {
   return (
     <>
       <div style={{
-        background: `linear-gradient(160deg, rgba(15,31,61,0.88) 0%, rgba(26,58,107,0.75) 100%), url('https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1600&q=80') center/cover`,
+        background: `linear-gradient(160deg, rgba(15,31,61,0.88) 0%, rgba(26,58,107,0.75) 100%), url('/images/bg/about-hero.jpg') center/cover`,
         padding: 'clamp(90px,14vw,130px) 5% 80px', textAlign: 'center',
       }}>
         <span className="section-label" style={{ color: 'var(--gold)' }}>Our Story</span>
@@ -45,7 +45,7 @@ export default function About() {
             </div>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=700&q=80"
+                src="/images/bg/about-photo.jpg"
                 alt="Church community"
                 style={{ width: '100%', borderRadius: 18, boxShadow: 'var(--shadow-lg)' }}
               />
