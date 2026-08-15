@@ -23,6 +23,27 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
+      # Bible data is bundled as a static asset instead of fetched from a
+      # third-party CDN at runtime (see scripts/transform-bible.mjs). This
+      # only actually fetches anything the FIRST time this file is missing —
+      # every subsequent deploy just uses what's already committed, so this
+      # doesn't add an external dependency to normal deploys. The commit here
+      # uses the default GITHUB_TOKEN, which GitHub does not let re-trigger
+      # this same workflow, so there's no risk of a push loop.
+      - name: Bundle Bible data (only if missing)
+        run: |
+          if [ -f public/data/kjv-bible.json ]; then
+            echo "Bible data already bundled — skipping fetch."
+          else
+            echo "Bible data missing — fetching once now..."
+            node scripts/transform-bible.mjs
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/data/kjv-bible.json
+            git commit -m "chore: bundle KJV Bible data" || echo "Nothing to commit"
+            git push || echo "Push failed — continuing build with local copy anyway"
+          fi
+
       - name: Create .env file
         run: |
           echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env

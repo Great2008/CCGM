@@ -1,5 +1,5 @@
-// CCG World Service Worker v15 (mobile) — Full Offline PWA + Push Notifications + API Cache + Bundled BG Images
-const CACHE = 'ccgworld-v15'
+// CCG World Service Worker v16 (mobile) — Full Offline PWA + Push Notifications + API Cache + Bundled BG Images + Bundled Bible
+const CACHE = 'ccgworld-v16'
 const API_CACHE = 'ccgworld-api-v5'
 const BG_CACHE = 'ccgworld-bg-v1'  // Hero background images from Unsplash — cache-first, permanent
 
@@ -53,6 +53,28 @@ self.addEventListener('fetch', e => {
         return res
       } catch {
         return cached || new Response('', { status: 503 })
+      }
+    })())
+    return
+  }
+
+  // Bundled Bible data (public/data/kjv-bible.json) — cache-first, permanent.
+  // It's a large (~4-5MB) static file that never changes, so once fetched
+  // it's served instantly from cache with zero network hit on every future
+  // visit, including fully offline ones. Deliberately NOT in the blocking
+  // PRECACHE list (would slow down initial SW install) — this caches it
+  // lazily on first actual use instead.
+  if (url.pathname === '/data/kjv-bible.json') {
+    e.respondWith((async () => {
+      const bgCache = await caches.open(BG_CACHE)
+      const cached = await bgCache.match(request.url)
+      if (cached) return cached
+      try {
+        const res = await fetch(request.clone())
+        if (res && res.status === 200) bgCache.put(request.url, res.clone())
+        return res
+      } catch {
+        return cached || new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } })
       }
     })())
     return
