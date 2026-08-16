@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react'
 import supabase from '../lib/supabase'
+import { getBundledContent } from '../lib/contentSync'
 
 export const DEFAULTS = {
   homepage: {
@@ -72,6 +73,15 @@ export function useSermonsContent(refreshKey = 0) {
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     setLoading(true)
+    // A manual pull-to-refresh (refreshKey > 0) always goes straight to live
+    // Supabase, bypassing the bundled snapshot, so "pull to refresh" always
+    // means "get me the actual latest right now." Normal loads try the
+    // bundled snapshot first — instant, works offline — only falling back
+    // to live Supabase if nothing's been synced yet (e.g. very first launch).
+    if (refreshKey === 0) {
+      const bundled = getBundledContent('sermons')
+      if (bundled) { setData(bundled); setLoading(false); return }
+    }
     supabase.from('sermons').select('*').eq('published', true).order('date', { ascending: false })
       .then(({ data: d }) => { setData(d||[]); setLoading(false) })
   }, [refreshKey])
