@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { getBundledContent } from '../lib/contentSync'
 import supabase from '../lib/supabase'
 import ShareButton, { ShareButtonLight } from '../components/ShareButton'
 
 const CACHE_KEY = 'ccgworld_blog'
 
 async function loadPosts() {
+  // Bundled-first: the daily-synced snapshot is the primary source — no
+  // live Supabase call at all on a normal load.
+  const bundled = getBundledContent('blog')
+  if (bundled && bundled.length > 0) return bundled
+
+  // Nothing synced yet — fall back to the old live-then-cache path.
   try {
     const { data, error } = await supabase
       .from('posts')

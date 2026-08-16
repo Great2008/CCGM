@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react'
+import { getBundledContent } from '../lib/contentSync'
 import supabase from '../lib/supabase'
 
 const CACHE_KEY = 'ccgworld_gallery'
 
 async function loadGallery() {
+  // Bundled-first: the daily-synced snapshot is the primary source — no
+  // live Supabase call at all on a normal load.
+  const bundled = getBundledContent('gallery')
+  if (bundled && bundled.length > 0) return bundled
+
+  // Nothing synced yet — fall back to the old live-then-cache path.
   try {
     const { data, error } = await supabase
       .from('gallery')

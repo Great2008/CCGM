@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useNativeSetup } from './hooks/useNativeSetup'
+import { syncContentIfNeeded } from './lib/contentSync'
 import AppSplash from './components/AppSplash'
 import UpdatePrompt from './components/UpdatePrompt'
 import Navbar     from './components/Navbar'
@@ -41,6 +42,10 @@ function AppInner() {
 
   // ── Native setup: push notification routing, badge count ──
   useNativeSetup()
+
+  // ── Content sync: checks once a day for a fresh Sermons/Sabbath/
+  // Devotional/Blog/Gallery/Newsletter snapshot from the main site ──
+  useEffect(() => { syncContentIfNeeded() }, [])
 
   // ── Hide native splash immediately — React splash takes over ──
   useEffect(() => {

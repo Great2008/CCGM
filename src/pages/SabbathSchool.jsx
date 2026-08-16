@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { PullToRefresh } from '../hooks/usePullToRefresh'
+import { getBundledContent } from '../lib/contentSync'
 import supabase from '../lib/supabase'
 import SEO from '../components/SEO'
 import { parseBlocks, ReadingContent, FormattedText } from '../lib/textFormat'
@@ -139,6 +140,20 @@ export default function SabbathSchool() {
   }, [])
 
   useEffect(() => {
+    // Bundled-first: the daily-synced snapshot is the primary source for a
+    // normal page load — instant, works offline, no live Supabase call at
+    // all. Pull-to-refresh (fetchFresh, wired separately below) is the only
+    // path that always goes live, for someone who wants the actual latest
+    // right now rather than whatever the last daily sync captured.
+    const bundled = getBundledContent('sabbath-lessons')
+    if (bundled && bundled.length > 0) {
+      setLessons(bundled)
+      setSelected(thisWeekLesson(bundled))
+      setLoading(false)
+      return
+    }
+    // Nothing synced yet (e.g. very first launch before the first daily
+    // check has run) — fall back to the old cached-lesson + live-fetch path.
     const cachedLesson = loadCache()
     if (cachedLesson && cachedLesson.body) {
       // Only use cache if it has actual content

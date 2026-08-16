@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getBundledContent } from '../lib/contentSync'
 import supabase from '../lib/supabase'
 import ShareButton from '../components/ShareButton'
 
@@ -168,6 +169,16 @@ export default function Devotional() {
   }, [])
 
   useEffect(() => {
+    // Bundled-first: the daily-synced snapshot is the primary source for a
+    // normal page load — instant, works offline, no live Supabase call.
+    const bundled = getBundledContent('devotionals')
+    if (bundled && bundled.length > 0) {
+      setDevs(bundled)
+      setSelected(todaysDev(bundled))
+      setLoading(false)
+      return
+    }
+    // Nothing synced yet — fall back to the old cached + live-fetch path.
     const cached = loadCache()
     if (cached && cached.length > 0) {
       setDevs(cached)
