@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getBundledContent } from '../lib/contentSync'
 import supabase from '../lib/supabase'
 import ShareButton from '../components/ShareButton'
+import { PullToRefresh } from '../hooks/usePullToRefresh'
 
 const CACHE_KEY     = 'ccgworld_devotionals'
 const BOOKMARKS_KEY = 'ccgworld_dev_bookmarks'
@@ -242,6 +243,7 @@ export default function Devotional() {
   )
 
   return (
+    <PullToRefresh onRefresh={() => fetchFresh(devs)}>
     <div style={{ overflowX: 'hidden', width: '100%' }}>
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
@@ -543,5 +545,6 @@ export default function Devotional() {
         </div>
       </div>
     </div>
+    </PullToRefresh>
   )
 }

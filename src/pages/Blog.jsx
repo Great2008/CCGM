@@ -3,16 +3,21 @@ import { Link } from 'react-router-dom'
 import { getBundledContent } from '../lib/contentSync'
 import supabase from '../lib/supabase'
 import ShareButton, { ShareButtonLight } from '../components/ShareButton'
+import { PullToRefresh } from '../hooks/usePullToRefresh'
 
 const CACHE_KEY = 'ccgworld_blog'
 
-async function loadPosts() {
+async function loadPosts(force = false) {
   // Bundled-first: the daily-synced snapshot is the primary source — no
-  // live Supabase call at all on a normal load.
-  const bundled = getBundledContent('blog')
-  if (bundled && bundled.length > 0) return bundled
+  // live Supabase call at all on a normal load. A manual pull-to-refresh
+  // (force = true) skips the snapshot and always goes straight to live
+  // Supabase, same as sermons/devotionals/Sabbath school.
+  if (!force) {
+    const bundled = getBundledContent('blog')
+    if (bundled && bundled.length > 0) return bundled
+  }
 
-  // Nothing synced yet — fall back to the old live-then-cache path.
+  // Nothing synced yet (or a forced refresh) — go live, cache the result.
   try {
     const { data, error } = await supabase
       .from('posts')
@@ -66,10 +71,15 @@ export default function Blog() {
     loadPosts().then(data => { setPosts(data); setLoading(false) })
   }, [])
 
+  const refresh = async () => {
+    const data = await loadPosts(true)
+    setPosts(data)
+  }
+
   const [featured, ...rest] = posts
 
   return (
-    <>
+    <PullToRefresh onRefresh={refresh}>
       <div style={{
         background: 'linear-gradient(135deg, var(--brand-deep) 0%, var(--brand-mid) 100%)',
         padding: 'clamp(90px,14vw,130px) 5% 60px', textAlign: 'center',
@@ -245,6 +255,6 @@ export default function Blog() {
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
         @media(max-width:768px){.blog-featured-card{grid-template-columns:1fr!important;}}
       `}</style>
-    </>
+    </PullToRefresh>
   )
 }
