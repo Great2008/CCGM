@@ -92,13 +92,13 @@ async function shareNative(shareData, imageUrl) {
   return 'failed'
 }
 
-export default function ShareButton({ title, text, url, imageUrl, label = 'Share', variant = 'full', suffix = 'Read more on CCG World', style: extraStyle = {} }) {
+export default function ShareButton({ title, text, url, imageUrl, label = 'Share', variant = 'full', suffix = 'Read more on CCG World', includeLink = true, style: extraStyle = {} }) {
   const [state, setState] = useState('idle')
 
   const shareData = {
     title: title || 'CCG World',
-    text:  text ? `${text}\n\n${suffix}` : 'Check this out on CCG World',
-    url:   url || window.location.href,
+    text:  text ? (includeLink ? `${text}\n\n${suffix}` : text) : 'Check this out on CCG World',
+    ...(includeLink ? { url: url || window.location.href } : {}),
   }
 
   const handleShare = async (e) => {
@@ -135,13 +135,13 @@ export default function ShareButton({ title, text, url, imageUrl, label = 'Share
   )
 }
 
-export function ShareButtonLight({ title, text, url, imageUrl, label = 'Share', suffix = 'Read more on CCG World', style: extraStyle = {} }) {
+export function ShareButtonLight({ title, text, url, imageUrl, label = 'Share', suffix = 'Read more on CCG World', includeLink = true, style: extraStyle = {} }) {
   const [state, setState] = useState('idle')
 
   const shareData = {
     title: title || 'CCG World',
-    text:  text ? `${text}\n\n${suffix}` : 'Check this out on CCG World',
-    url:   url || window.location.href,
+    text:  text ? (includeLink ? `${text}\n\n${suffix}` : text) : 'Check this out on CCG World',
+    ...(includeLink ? { url: url || window.location.href } : {}),
   }
 
   const handleShare = async (e) => {

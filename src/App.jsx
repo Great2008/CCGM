@@ -73,6 +73,7 @@ function AppInner() {
           <Route path="/contact"    element={<Contact />} />
           <Route path="/gallery"    element={<Gallery />} />
           <Route path="/blog"       element={<Blog />} />
+          <Route path="/blog/:id"   element={<Blog />} />
           <Route path="/newsletter" element={<Newsletter />} />
           <Route path="/meal-ticket" element={<MealTicket />} />
           <Route path="/bible"      element={<Bible />} />
