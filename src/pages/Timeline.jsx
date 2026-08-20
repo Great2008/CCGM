@@ -4,6 +4,7 @@ import supabase from '../lib/supabase'
 import { auditLog } from '../lib/auditLog'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ShareButtonLight } from '../components/ShareButton'
+import { APP_URL } from '../lib/config'
 
 const POST_TYPES = [
   { id:'update',    label:'📝 Update',    color:'var(--brand-light)' },
@@ -100,8 +101,8 @@ function PostCard({ post, currentUserId, onReact, onComment, onDelete, isAdmin, 
         </button>
         <ShareButtonLight
           title={post.profiles?.display_name || 'CCG World'}
-          text={post.body}
-          url={`${window.location.origin}/timeline?post=${post.id}`}
+          text={`${APP_URL}/timeline?post=${post.id}\n\n${post.body}`}
+          includeLink={false}
           label="Share"
           style={{fontSize:'0.82rem', padding:'6px 14px'}}
         />

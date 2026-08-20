@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { getBundledContent } from '../lib/contentSync'
 import supabase from '../lib/supabase'
 import { ShareButtonLight } from '../components/ShareButton'
+import { APP_URL } from '../lib/config'
 import NewsletterSignup from '../components/NewsletterSignup'
 import SEO from '../components/SEO'
 import { parseBlocks, renderInline } from '../lib/textFormat'
@@ -133,7 +134,7 @@ export default function Newsletter() {
                       <button className="btn btn-green" onClick={() => setExpanded(isOpen ? null : n.id)}>
                         {isOpen ? 'Show Less ↑' : 'Read Full Newsletter →'}
                       </button>
-                      <ShareButtonLight title={n.subject} text={n.subject} url={`${window.location.origin}/newsletter#newsletter-${n.id}`} />
+                      <ShareButtonLight title={n.subject} text={`${APP_URL}/newsletter#newsletter-${n.id}\n\n${n.subject}`} includeLink={false} />
                     </div>
                   </div>
                 )

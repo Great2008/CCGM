@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getBundledContent } from '../lib/contentSync'
+import { APP_URL } from '../lib/config'
 import supabase from '../lib/supabase'
 import ShareButton from '../components/ShareButton'
 import { PullToRefresh } from '../hooks/usePullToRefresh'
@@ -50,12 +51,12 @@ function renderBody(body, fontSize = 15) {
 }
 
 // Plain-text version of a post for sharing — strips markdown markers
-// (##, #, **) and stitches title/excerpt/body together into one block,
-// since Share should hand the recipient the whole article, not a link.
+// (##, #, **), prefixes the real production link (never window.location,
+// which can be localhost or a preview URL), and stitches title/excerpt/body
+// together into one block, since Share should hand the recipient the whole
+// article as one predictable piece of text, not a separate link field.
 function shareText(post) {
-  const plain = (s) => (s || '').replace(/^##?\s*/gm, '').replace(/\*\*/g, '')
-  const parts = [post.title, post.excerpt, plain(post.body)].filter(Boolean)
-  return parts.join('\n\n')
+  return `${APP_URL}/blog/${post.id}\n\n${post.title}`
 }
 
 export default function Blog() {
