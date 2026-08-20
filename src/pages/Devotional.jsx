@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getBundledContent } from '../lib/contentSync'
+import { APP_URL } from '../lib/config'
 import supabase from '../lib/supabase'
 import ShareButton from '../components/ShareButton'
 import { PullToRefresh } from '../hooks/usePullToRefresh'
@@ -55,6 +56,15 @@ const parseBlocks = (text) => {
   })
   flush()
   return blocks.filter(Boolean)
+}
+
+// Plain-text version of a devotional for sharing — prefixes the real
+// production link (never window.location, which can be localhost or a
+// preview URL) and stitches title/excerpt/body into one block, so Share
+// hands the recipient the whole devotional as one predictable piece of
+// text rather than a separate link field.
+function shareText(dev) {
+  return `${APP_URL}/devotional\n\n${dev.title}`
 }
 
 function ReadingContent({ blocks, fontSize }) {
@@ -485,7 +495,8 @@ export default function Devotional() {
                       </button>
                       <ShareButton
                         title={selected.title}
-                        text={selected.excerpt || selected.title}
+                        text={shareText(selected)}
+                        includeLink={false}
                         style={{
                           borderRadius: '10px 10px 0 0',
                           borderColor: 'rgba(255,255,255,0.25)',
