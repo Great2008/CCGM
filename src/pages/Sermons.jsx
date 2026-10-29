@@ -562,7 +562,7 @@ export default function Sermons() {
                       {selected.views   && <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem' }}>👁 {Number(selected.views).toLocaleString()} views</span>}
                       <button
                         onClick={async () => {
-                          const msg = `🎙 "${selected.title}"${selected.pastor ? ` — ${selected.pastor}` : ''}\n\nListen on CCG World:\nhttps://ccgm-pwa.vercel.app/sermons`
+                          const msg = `🎙 "${selected.title}"${selected.pastor ? ` — ${selected.pastor}` : ''}\n\nListen on CCG World:\nhttps://www.ccgworld.name.ng/sermons`
                           if (navigator.share) {
                             try { await navigator.share({ text: msg }) } catch(_) {}
                           } else {

@@ -11,7 +11,7 @@
 // Content" GitHub Action on the main site's repo — this module just checks
 // once a day whether that's happened since our last check.
 
-const CONTENT_BASE_URL = 'https://ccgm-pwa.vercel.app/data'
+const CONTENT_BASE_URL = 'https://www.ccgworld.name.ng/data'
 const SYNC_META_KEY = 'ccgworld_content_sync_meta'
 const CONTENT_KEY = (name) => `ccgworld_content_${name}`
 const POLL_INTERVAL_MS = 24 * 60 * 60 * 1000 // once a day

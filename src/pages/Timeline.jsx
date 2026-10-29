@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import supabase from '../lib/supabase'
+import { invokeApi } from '../lib/api'
 import { auditLog } from '../lib/auditLog'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ShareButtonLight } from '../components/ShareButton'
@@ -780,13 +781,13 @@ export default function Timeline() {
 
       // Notify admin via email
       try {
-        await supabase.functions.invoke('send-suspension-email', {
+        await invokeApi('send-suspension-email', {
           body: {
             type: 'auto_suspension_admin_alert',
             authorName,
             postBody: reportPost.body?.slice(0, 120),
             reportCount: count,
-            adminPanelUrl: 'https://ccgm-pwa.vercel.app/admin',
+            adminPanelUrl: 'https://www.ccgworld.name.ng/admin',
           }
         })
       } catch(_) {}
